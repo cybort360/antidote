@@ -1,0 +1,47 @@
+name: Live CockroachDB Proof
+
+on:
+  workflow_dispatch:
+
+jobs:
+  live-proof:
+    name: Migrations · Live API · CockroachDB integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      DEMO_MODE: "false"
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ANTIDOTE_TENANT_ID: ${{ secrets.ANTIDOTE_TENANT_ID }}
+      ANTIDOTE_API_KEYS: ${{ secrets.ANTIDOTE_API_KEYS }}
+      ANTIDOTE_API_KEY: ${{ secrets.ANTIDOTE_API_KEY }}
+      OPENCODE_GO_API_KEY: ${{ secrets.OPENCODE_GO_API_KEY }}
+      OPENCODE_GO_MODEL: deepseek-v4-flash
+      OPENCODE_GO_BASE_URL: https://opencode.ai/zen/go/v1
+      EMBEDDING_PROVIDER: local
+      EMBEDDING_DIMENSIONS: "1024"
+      ANTIDOTE_URL: http://127.0.0.1:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Refuse an incomplete secret set
+        run: |
+          for name in DATABASE_URL ANTIDOTE_TENANT_ID ANTIDOTE_API_KEYS ANTIDOTE_API_KEY OPENCODE_GO_API_KEY; do
+            test -n "${!name}" || { echo "Missing required secret: ${name}"; exit 1; }
+          done
+      - name: Apply tracked migrations
+        run: npm run migrate
+      - run: npm run build
+      - name: Start live API
+        run: |
+          nohup npm run start -- --port 3000 > /tmp/antidote-live.log 2>&1 &
+          for i in $(seq 1 45); do
+            curl -sf http://127.0.0.1:3000/api/health > /dev/null && break
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:3000/api/health || { cat /tmp/antidote-live.log; exit 1; }
+      - name: Run live proof without skipped database tests
+        run: npm run verify:live

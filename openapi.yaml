@@ -1,0 +1,91 @@
+openapi: 3.1.0
+info:
+  title: ANTIDOTE API
+  version: 1.0.0
+  description: Causal memory recovery for AI agents. Demo mode accepts requests without credentials. Live mode requires a tenant-scoped bearer key.
+servers:
+  - url: http://localhost:3000
+security:
+  - bearerAuth: []
+paths:
+  /api/health:
+    get:
+      security: []
+      summary: Check service and dependency readiness
+      responses:
+        "200": { description: Healthy }
+  /api/ingest:
+    post:
+      summary: Screen and ingest a source document
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/IngestRequest" }
+      responses:
+        "201": { description: Ingestion completed }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/retrieve:
+    post:
+      summary: Retrieve trusted memories and record retrieval events
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RetrieveRequest" }
+      responses:
+        "200": { description: Trusted memory results }
+  /api/decisions:
+    post:
+      summary: Record a decision and its memory inputs
+      responses:
+        "201": { description: Decision recorded }
+  /api/decisions/{id}/actions:
+    post:
+      summary: Record an intended external action
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "201": { description: Action recorded }
+  /api/decisions/{id}/derived:
+    post:
+      summary: Record a derived memory
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "201": { description: Derived memory recorded }
+  /api/lineage:
+    get:
+      summary: Read a causal chain
+      parameters:
+        - { in: query, name: memoryId, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Causal chain }
+  /api/revocations:
+    post:
+      summary: Simulate or execute causal repair
+      responses:
+        "200": { description: Repair plan or execution result }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer }
+  responses:
+    Unauthorized: { description: Missing or invalid bearer API key }
+  schemas:
+    IngestRequest:
+      type: object
+      required: [sourceUri, content]
+      properties:
+        sourceUri: { type: string }
+        content: { type: string }
+        contentType: { type: string }
+        actor: { type: string }
+        idempotencyKey: { type: string }
+    RetrieveRequest:
+      type: object
+      required: [agentId, query]
+      properties:
+        agentId: { type: string }
+        query: { type: string }
+        k: { type: integer, minimum: 1, maximum: 50 }
+        context: { type: object, additionalProperties: true }

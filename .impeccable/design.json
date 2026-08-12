@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-12T04:31:00.000Z",
+  "title": "Design System: ANTIDOTE",
+  "extensions": {
+    "colorMeta": {
+      "basalt": { "role": "neutral", "displayName": "Basalt", "canonical": "#090a08", "tonalRamp": ["#090a08", "#11130d", "#15180f", "#1a1e14", "#66705e", "#8f9785", "#c8cebb", "#f4f5ed"] },
+      "signal-chartreuse": { "role": "primary", "displayName": "Signal Chartreuse", "canonical": "#d5ff45", "tonalRamp": ["#263300", "#465f0b", "#698d18", "#91ba2a", "#b9df39", "#d5ff45", "#e7ff8a", "#f4ffd1"] },
+      "contamination-red": { "role": "secondary", "displayName": "Contamination Red", "canonical": "#ff6957", "tonalRamp": ["#3c100d", "#691c17", "#94291f", "#bd3d2e", "#df5040", "#ff6957", "#ff998c", "#ffd0c9"] },
+      "simulation-amber": { "role": "tertiary", "displayName": "Simulation Amber", "canonical": "#e7b365", "tonalRamp": ["#37230b", "#604015", "#895e22", "#b18035", "#d4a24c", "#e7b365", "#f4ce94", "#ffead0"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Containment Display", "purpose": "One decisive incident statement at a time." },
+      "headline": { "displayName": "Operational Headline", "purpose": "Recovery controls and view titles." },
+      "label": { "displayName": "Evidence Label", "purpose": "Identifiers, state, measurements, and timestamps." }
+    },
+    "shadows": [],
+    "motion": [
+      { "name": "containment-ease", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "State transitions and active navigation rules." },
+      { "name": "graph-contamination", "value": "1.7s linear infinite dash offset", "purpose": "Only active contaminated causal edges." }
+    ],
+    "breakpoints": [
+      { "name": "wide", "value": "1040px" },
+      { "name": "narrow", "value": "780px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Recovery Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Use for the one irreversible or primary operator action in view.",
+      "html": "<button class=\"ds-primary\">EXECUTE REPAIR</button>",
+      "css": ".ds-primary { min-height:45px; padding:12px 16px; border:1px solid #d5ff45; border-radius:0; background:#d5ff45; color:#090a08; font:600 10px 'SFMono-Regular',Consolas,monospace; letter-spacing:.1em; } .ds-primary:hover { background:#ecff9c; } .ds-primary:focus-visible { outline:2px solid #d5ff45; outline-offset:4px; }"
+    },
+    {
+      "name": "Ghost Evidence Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Use for non-destructive investigation and simulation actions.",
+      "html": "<button class=\"ds-ghost\">SIMULATE REVOCATION</button>",
+      "css": ".ds-ghost { min-height:45px; padding:12px 16px; border:1px solid rgba(231,239,208,.28); border-radius:0; background:transparent; color:#f4f5ed; font:600 10px 'SFMono-Regular',Consolas,monospace; letter-spacing:.1em; } .ds-ghost:hover { border-color:#d5ff45; background:rgba(213,255,69,.04); color:#d5ff45; } .ds-ghost:focus-visible { outline:2px solid #d5ff45; outline-offset:4px; }"
+    },
+    {
+      "name": "Lifecycle Badge",
+      "kind": "chip",
+      "refersTo": "lifecycle-badge",
+      "description": "Compact immutable lifecycle label for a forensic object.",
+      "html": "<span class=\"ds-badge\">SUSPECT</span>",
+      "css": ".ds-badge { display:inline-block; padding:4px 7px; border:1px solid rgba(255,105,87,.62); border-radius:0; color:#ff6957; font:600 8px 'SFMono-Regular',Consolas,monospace; letter-spacing:.11em; }"
+    },
+    {
+      "name": "Case Navigation",
+      "kind": "nav",
+      "refersTo": "case-navigation",
+      "description": "Compact evidence navigation with active left-to-right signal rule.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-active\" href=\"#\">CASE MAP</a><a href=\"#\">ATTACKS</a><a href=\"#\">TRACE</a></nav>",
+      "css": ".ds-nav { display:flex; gap:18px; } .ds-nav a { position:relative; padding:8px 0; color:#8f9785; text-decoration:none; font:600 9px 'SFMono-Regular',Consolas,monospace; letter-spacing:.12em; } .ds-nav a::after { position:absolute; right:0; bottom:0; left:0; height:1px; content:''; background:#d5ff45; transform:scaleX(0); transform-origin:left; transition:transform 360ms cubic-bezier(.16,1,.3,1); } .ds-nav a:hover,.ds-nav .ds-active { color:#f4f5ed; } .ds-nav a:hover::after,.ds-nav .ds-active::after { transform:scaleX(1); }"
+    },
+    {
+      "name": "Evidence Input",
+      "kind": "input",
+      "refersTo": "evidence-input",
+      "description": "Use for candidate-memory text submitted to security screening.",
+      "html": "<textarea class=\"ds-input\" placeholder=\"Paste a candidate memory fact…\"></textarea>",
+      "css": ".ds-input { width:100%; min-height:72px; padding:10px 12px; border:1px solid rgba(231,239,208,.28); border-radius:0; background:#0d0f0b; color:#f4f5ed; font:13px 'SFMono-Regular',Consolas,monospace; } .ds-input:focus { outline:none; border-color:#d5ff45; }"
+    },
+    {
+      "name": "Causal Topology",
+      "kind": "custom",
+      "refersTo": "causal-topology",
+      "description": "Live SVG evidence instrument. Node geometry encodes artifact kind, and color encodes lifecycle state.",
+      "html": "<div class=\"ds-topology\"><span class=\"ds-source\">S</span><i></i><span class=\"ds-memory\">M</span><i></i><span class=\"ds-action\">$</span></div>",
+      "css": ".ds-topology { display:flex; align-items:center; gap:18px; padding:24px; border:1px solid rgba(231,239,208,.28); background:#10120d; } .ds-topology span { display:grid; width:42px; height:42px; place-items:center; color:#f4f5ed; font:700 14px 'SFMono-Regular',Consolas,monospace; } .ds-source { border:2px solid #ff6957; } .ds-memory { border:2px solid #ff6957; border-radius:50%; } .ds-action { clip-path:polygon(50% 0,100% 100%,0 100%); padding-top:10px; background:rgba(255,105,87,.12); border-bottom:2px solid #ff6957; } .ds-topology i { width:50px; height:1px; background:#ff6957; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Containment Console",
+    "overview": "ANTIDOTE looks like an active incident instrument, not a generic security dashboard. Giant condensed statements establish consequence first. The causal topology, not decoration, then becomes the central visual object. Every surface remains scan-ready during an incident.",
+    "keyCharacteristics": ["Oversized stacked display type for consequential statements only.", "Ruled geometry and live SVG topology instead of decorative illustration.", "Flat, bordered evidence fields with zero-radius forms.", "Motion represents a real graph or lifecycle state and respects reduced-motion preferences."],
+    "rules": [
+      { "name": "The Meaningful Signal Rule", "body": "Chartreuse, red, and amber are state colors. Do not use them as generic decoration or spread them evenly through a screen.", "section": "colors" },
+      { "name": "The Evidence Hierarchy Rule", "body": "Display type earns attention for one consequence at a time. Supporting evidence remains compact, readable, and never competes with the active action.", "section": "typography" },
+      { "name": "The No Floating Evidence Rule", "body": "Evidence surfaces use a rule, a tonal shift, or both. Do not place a soft shadow under a forensic object.", "section": "elevation" }
+    ],
+    "dos": ["Do use display type for one high-stakes message, then yield space to evidence.", "Do make the causal graph, inspector, and recovery action present without relying on motion.", "Do use actual lifecycle colors and labels from the product vocabulary."],
+    "donts": ["Don't use generic dashboard card walls, rounded floating modules, neon glows, or decorative glass.", "Don't replace the live topology with a static illustration or a fake recovery animation.", "Don't let immersive motion obscure an action, a warning, a status, or the details required for audit."]
+  }
+}

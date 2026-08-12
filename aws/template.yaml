@@ -1,0 +1,225 @@
+# ANTIDOTE AWS SAM template — least-privilege deployment for the repair /
+# re-evaluation worker and the immutable evidence bucket.
+#
+# Deploy:
+#   sam build
+#   sam deploy --guided \
+#     --parameter-overrides EvidenceBucketName=antidote-evidence-yourname \
+#     BedrockModelId=amazon.nova-lite-v1:0
+#
+# Environment secrets (DATABASE_URL, AWS credentials) come from the runtime
+# environment / SSM Parameter Store — never from the bundle or the browser.
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: ANTIDOTE async repair/re-evaluation worker + immutable evidence archive
+
+Parameters:
+  EvidenceBucketName:
+    Type: String
+    Description: Name of the S3 evidence bucket (Object Lock enabled)
+  BedrockModelId:
+    Type: String
+    Default: amazon.nova-lite-v1:0
+  TenantId:
+    Type: String
+  DatabaseUrlParameter:
+    Type: String
+    Default: /antidote/DATABASE_URL
+  ApiKeysParameter:
+    Type: String
+    Default: /antidote/ANTIDOTE_API_KEYS
+  OpenCodeGoKeyParameter:
+    Type: String
+    Default: /antidote/OPENCODE_GO_API_KEY
+  EvidenceSigningSecretParameter:
+    Type: String
+    Default: /antidote/EVIDENCE_SIGNING_SECRET
+
+Resources:
+  # ── Immutable evidence archive ───────────────────────────────────────────────
+  EvidenceBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref EvidenceBucketName
+      VersioningConfiguration:
+        Status: Enabled
+      ObjectLockEnabled: true
+      ObjectLockConfiguration:
+        ObjectLockEnabled: Enabled
+        Rule:
+          DefaultRetention:
+            Mode: COMPLIANCE
+            Days: 30
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Status: Enabled
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 90
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+
+  # ── Repair / re-evaluation worker ────────────────────────────────────────────
+  RepairWorkerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../
+      Handler: aws/repair-worker.handler
+      Runtime: nodejs22.x
+      MemorySize: 512
+      Timeout: 120
+      Policies:
+        # Least privilege: Bedrock invoke + scoped S3 write + logs only.
+        - Statement:
+            - Sid: InvokeBedrock
+              Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource:
+                - !Sub "arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/${BedrockModelId}"
+                - !Sub "arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/amazon.titan-embed-text-v2:0"
+        - Statement:
+            - Sid: WriteEvidence
+              Effect: Allow
+              Action:
+                - s3:PutObject
+              Resource:
+                - !Sub "${EvidenceBucket.Arn}/repairs/*"
+                - !Sub "${EvidenceBucket.Arn}/sources/*"
+        - Statement:
+            - Sid: CloudWatchLogs
+              Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: "*"
+      Environment:
+        Variables:
+          DATABASE_URL: !Sub "{{resolve:ssm:${DatabaseUrlParameter}}}"
+          DEMO_MODE: "false"
+          ANTIDOTE_TENANT_ID: !Ref TenantId
+          ANTIDOTE_API_KEYS: !Sub "{{resolve:ssm:${ApiKeysParameter}}}"
+          OPENCODE_GO_API_KEY: !Sub "{{resolve:ssm:${OpenCodeGoKeyParameter}}}"
+          OPENCODE_GO_MODEL: deepseek-v4-flash
+          EMBEDDING_PROVIDER: local
+          BEDROCK_MODEL_ID: !Ref BedrockModelId
+          EVIDENCE_BUCKET: !Ref EvidenceBucketName
+          EVIDENCE_SIGNING_SECRET: !Sub "{{resolve:ssm:${EvidenceSigningSecretParameter}}}"
+      Events:
+        # Trigger: EventBridge schedule + manual invocation (SQS optional).
+        ScheduledRepair:
+          Type: Schedule
+          Properties:
+            Schedule: rate(5 minutes)
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - aws/repair-worker.ts
+        Minify: true
+        Target: es2022
+        Sourcemap: true
+
+  # ── Trigger queue (optional, recommended for event-driven repair) ───────────
+  RepairQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 300
+      MessageRetentionPeriod: 1209600
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt RepairQueueDLQ.Arn
+        maxReceiveCount: 5
+
+  RepairQueueDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600
+
+  RepairQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref RepairQueue
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action: sqs:SendMessage
+            Resource: !GetAtt RepairQueue.Arn
+            Condition:
+              ArnLike:
+                aws:SourceArn: !Sub "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/*"
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+
+  QueueConsumer:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../
+      Handler: aws/repair-worker.handler
+      Runtime: nodejs22.x
+      MemorySize: 512
+      Timeout: 120
+      Environment:
+        Variables:
+          DATABASE_URL: !Sub "{{resolve:ssm:${DatabaseUrlParameter}}}"
+          DEMO_MODE: "false"
+          ANTIDOTE_TENANT_ID: !Ref TenantId
+          ANTIDOTE_API_KEYS: !Sub "{{resolve:ssm:${ApiKeysParameter}}}"
+          OPENCODE_GO_API_KEY: !Sub "{{resolve:ssm:${OpenCodeGoKeyParameter}}}"
+          OPENCODE_GO_MODEL: deepseek-v4-flash
+          EMBEDDING_PROVIDER: local
+          BEDROCK_MODEL_ID: !Ref BedrockModelId
+          EVIDENCE_BUCKET: !Ref EvidenceBucketName
+          EVIDENCE_SIGNING_SECRET: !Sub "{{resolve:ssm:${EvidenceSigningSecretParameter}}}"
+      Policies:
+        - SQSPollerPolicy:
+            QueueName: !Ref RepairQueue
+        - Statement:
+            - Sid: InvokeBedrock
+              Effect: Allow
+              Action: bedrock:InvokeModel
+              Resource:
+                - !Sub "arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/${BedrockModelId}"
+                - !Sub "arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/amazon.titan-embed-text-v2:0"
+            - Sid: WriteEvidence
+              Effect: Allow
+              Action: s3:PutObject
+              Resource:
+                - !Sub "${EvidenceBucket.Arn}/repairs/*"
+                - !Sub "${EvidenceBucket.Arn}/sources/*"
+            - Sid: CloudWatchLogs
+              Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: "*"
+      Events:
+        Queue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt RepairQueue.Arn
+            BatchSize: 10
+            FunctionResponseTypes:
+              - ReportBatchItemFailures
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - aws/repair-worker.ts
+        Minify: true
+        Target: es2022
+        Sourcemap: true
+
+Outputs:
+  EvidenceBucket:
+    Value: !Ref EvidenceBucketName
+  RepairWorkerFunctionArn:
+    Value: !GetAtt RepairWorkerFunction.Arn

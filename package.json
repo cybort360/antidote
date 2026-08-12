@@ -1,0 +1,52 @@
+{
+  "name": "antidote-agent-memory-recovery",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "npm run typecheck && npm test && npm run build",
+    "migrate": "node scripts/migrate.mjs",
+    "smoke": "node scripts/smoke-demo.mjs",
+    "verify:release": "node scripts/verify-release.mjs",
+    "verify:live": "node scripts/verify-live.mjs",
+    "auth:key": "node scripts/hash-api-key.mjs",
+    "doctor": "node scripts/doctor.mjs",
+    "sdk:build": "tsc -p sdk/tsconfig.json",
+    "sdk:pack:check": "npm run sdk:build && npm pack ./sdk --dry-run --json --cache /tmp/antidote-npm-cache",
+    "evaluate:screening": "node scripts/evaluate-screening.mjs",
+    "worker:build": "esbuild aws/repair-worker.ts --bundle --platform=node --target=node22 --format=cjs --external:@aws-sdk/* --outfile=/tmp/antidote-repair-worker.cjs",
+    "verify:deployment": "node scripts/validate-deployment.mjs && npm run worker:build"
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.883.0",
+    "@aws-sdk/client-s3": "^3.883.0",
+    "next": "^15.5.0",
+    "pg": "^8.16.3",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "zod": "^4.1.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.17.2",
+    "@types/pg": "^8.15.5",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "esbuild": "^0.27.0",
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.10"
+  },
+  "overrides": {
+    "postcss": "8.5.26",
+    "sharp": "0.35.3"
+  }
+}
