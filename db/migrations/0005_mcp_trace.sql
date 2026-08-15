@@ -1,7 +1,7 @@
 -- ANTIDOTE agent trace (migration 5)
 -- Records every governed MCP operation executed by an authorized agent
 -- (Security/Forensics): when it occurred, which capability was invoked, the
--- outcome, and the resulting database evidence — for the in-product forensic
+-- outcome, and the resulting database evidence: for the in-product forensic
 -- view. Secrets are never stored here (params/results are redacted server-side).
 
 CREATE TABLE IF NOT EXISTS mcp_operations (

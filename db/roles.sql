@@ -5,7 +5,7 @@
 -- ANTIDOTE tables. The `antidote_forensics` role is the narrow scope exposed
 -- through CockroachDB Cloud Managed MCP: read-only access to exactly the
 -- tables a Security/Forensics agent needs (schemas, lineage, blast radius,
--- repair status) — no DML, no DDL, no ability to mutate memory state.
+-- repair status): no DML, no DDL, no ability to mutate memory state.
 --
 -- Create the MCP server in CockroachDB Cloud bound to `antidote_forensics`,
 -- then set COCKROACH_MCP_URL / COCKROACH_MCP_API_KEY from its issued values.

@@ -6,7 +6,7 @@
 
 -- Extend the node status vocabulary.
 ALTER TABLE memory_nodes DROP CONSTRAINT IF EXISTS memory_nodes_status_chk;
-ALTER TABLE memory_nodes ADD CONSTRAINT IF NOT EXISTS memory_nodes_status_chk
+ALTER TABLE memory_nodes ADD CONSTRAINT memory_nodes_status_chk
   CHECK (status IN ('trusted','active','suspect','revoked','quarantined','invalidated','cancelled','repaired','requires_review'));
 
 -- Mark when a node was repaired so REPAIRED state is queryable without deleting
@@ -16,7 +16,7 @@ ALTER TABLE memory_nodes ADD COLUMN IF NOT EXISTS repaired_at TIMESTAMPTZ;
 -- Extend the action status vocabulary for irreversible actions flagged for
 -- human remediation.
 ALTER TABLE actions DROP CONSTRAINT IF EXISTS actions_status_chk;
-ALTER TABLE actions ADD CONSTRAINT IF NOT EXISTS actions_status_chk
+ALTER TABLE actions ADD CONSTRAINT actions_status_chk
   CHECK (status IN ('pending','executing','completed','cancelled','failed','requires_review'));
 
 -- Re-evaluation queue: affected agents/cases enqueued by a repair so they can

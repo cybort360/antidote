@@ -1,4 +1,4 @@
--- ANTIDOTE CockroachDB schema — composed snapshot.
+-- ANTIDOTE CockroachDB schema: composed snapshot.
 -- Source of truth: db/migrations/ (applied via `npm run migrate`).
 -- CockroachDB v25.4+ recommended for GA vector indexing.
 
@@ -184,7 +184,7 @@ CREATE INDEX IF NOT EXISTS contamination_events_created_idx ON contamination_eve
 CREATE TABLE IF NOT EXISTS attack_memories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   pattern STRING NOT NULL,
-  family STRING NOT NULL DEFAULT 'unknown',
+  "family" STRING NOT NULL DEFAULT 'unknown',
   embedding VECTOR(1024),
   memory_id STRING REFERENCES memory_nodes(id) ON DELETE SET NULL,
   revocation_id UUID REFERENCES revocations(id) ON DELETE SET NULL,
@@ -195,7 +195,7 @@ CREATE TABLE IF NOT EXISTS attack_memories (
 CREATE VECTOR INDEX IF NOT EXISTS attack_memories_embedding_idx
 ON attack_memories (embedding) WHERE embedding IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS attack_memories_family_idx ON attack_memories (family);
+CREATE INDEX IF NOT EXISTS attack_memories_family_idx ON attack_memories ("family");
 CREATE INDEX IF NOT EXISTS attack_memories_created_idx ON attack_memories (created_at DESC);
 
 -- ── Schema hardening for 0001 tables ──────────────────────────────────────────
@@ -207,11 +207,11 @@ ALTER TABLE memory_nodes ADD COLUMN IF NOT EXISTS source_id STRING;
 ALTER TABLE memory_nodes ADD COLUMN IF NOT EXISTS version INT NOT NULL DEFAULT 1;
 ALTER TABLE memory_nodes ADD COLUMN IF NOT EXISTS status_reason STRING;
 
-ALTER TABLE memory_nodes ADD CONSTRAINT IF NOT EXISTS memory_nodes_kind_chk
+ALTER TABLE memory_nodes ADD CONSTRAINT memory_nodes_kind_chk
   CHECK (kind IN ('source','memory','agent','decision','action','derived'));
-ALTER TABLE memory_nodes ADD CONSTRAINT IF NOT EXISTS memory_nodes_status_chk
+ALTER TABLE memory_nodes ADD CONSTRAINT memory_nodes_status_chk
   CHECK (status IN ('trusted','suspect','revoked','quarantined','invalidated','cancelled'));
-ALTER TABLE memory_nodes ADD CONSTRAINT IF NOT EXISTS memory_nodes_source_fk
+ALTER TABLE memory_nodes ADD CONSTRAINT memory_nodes_source_fk
   FOREIGN KEY (source_id) REFERENCES memory_nodes(id) ON DELETE SET NULL;
 
 -- Dependencies: edges carry a weight and structured metadata; relation values
@@ -219,7 +219,7 @@ ALTER TABLE memory_nodes ADD CONSTRAINT IF NOT EXISTS memory_nodes_source_fk
 ALTER TABLE memory_edges ADD COLUMN IF NOT EXISTS weight DECIMAL(5,4);
 ALTER TABLE memory_edges ADD COLUMN IF NOT EXISTS metadata JSONB NOT NULL DEFAULT '{}'::JSONB;
 
-ALTER TABLE memory_edges ADD CONSTRAINT IF NOT EXISTS memory_edges_relation_chk
+ALTER TABLE memory_edges ADD CONSTRAINT memory_edges_relation_chk
   CHECK (relation IN ('created','retrieved','influenced','produced','derived','dependency'));
 
 CREATE INDEX IF NOT EXISTS memory_edges_from_relation_idx ON memory_edges (from_id, relation);
@@ -227,13 +227,13 @@ CREATE INDEX IF NOT EXISTS memory_edges_to_relation_idx ON memory_edges (to_id, 
 
 -- Retrieval events belong to a session when one is active.
 ALTER TABLE retrieval_events ADD COLUMN IF NOT EXISTS session_id STRING;
-ALTER TABLE retrieval_events ADD CONSTRAINT IF NOT EXISTS retrieval_events_session_fk
+ALTER TABLE retrieval_events ADD CONSTRAINT retrieval_events_session_fk
   FOREIGN KEY (session_id) REFERENCES agent_sessions(id) ON DELETE SET NULL;
 
 -- Actions and repair jobs get explicit status constraints.
-ALTER TABLE actions ADD CONSTRAINT IF NOT EXISTS actions_status_chk
+ALTER TABLE actions ADD CONSTRAINT actions_status_chk
   CHECK (status IN ('pending','executing','completed','cancelled','failed'));
-ALTER TABLE actions ADD CONSTRAINT IF NOT EXISTS actions_type_chk CHECK (action_type <> '');
+ALTER TABLE actions ADD CONSTRAINT actions_type_chk CHECK (action_type <> '');
 
 -- Repair idempotency: a completed repair for the same root memory + plan hash
 -- is a replay, not a new operation. Concurrency is serialized on the root row.
@@ -252,7 +252,7 @@ ON repair_jobs (root_memory_id, plan_hash) WHERE status = 'completed';
 
 -- Extend the node status vocabulary.
 ALTER TABLE memory_nodes DROP CONSTRAINT IF EXISTS memory_nodes_status_chk;
-ALTER TABLE memory_nodes ADD CONSTRAINT IF NOT EXISTS memory_nodes_status_chk
+ALTER TABLE memory_nodes ADD CONSTRAINT memory_nodes_status_chk
   CHECK (status IN ('trusted','active','suspect','revoked','quarantined','invalidated','cancelled','repaired','requires_review'));
 
 -- Mark when a node was repaired so REPAIRED state is queryable without deleting
@@ -262,7 +262,7 @@ ALTER TABLE memory_nodes ADD COLUMN IF NOT EXISTS repaired_at TIMESTAMPTZ;
 -- Extend the action status vocabulary for irreversible actions flagged for
 -- human remediation.
 ALTER TABLE actions DROP CONSTRAINT IF EXISTS actions_status_chk;
-ALTER TABLE actions ADD CONSTRAINT IF NOT EXISTS actions_status_chk
+ALTER TABLE actions ADD CONSTRAINT actions_status_chk
   CHECK (status IN ('pending','executing','completed','cancelled','failed','requires_review'));
 
 -- Re-evaluation queue: affected agents/cases enqueued by a repair so they can
@@ -305,7 +305,7 @@ ON attack_memories (affected_entities);
 -- ANTIDOTE agent trace (migration 5)
 -- Records every governed MCP operation executed by an authorized agent
 -- (Security/Forensics): when it occurred, which capability was invoked, the
--- outcome, and the resulting database evidence — for the in-product forensic
+-- outcome, and the resulting database evidence: for the in-product forensic
 -- view. Secrets are never stored here (params/results are redacted server-side).
 
 CREATE TABLE IF NOT EXISTS mcp_operations (
@@ -333,7 +333,13 @@ ALTER TABLE re_evaluations ADD COLUMN IF NOT EXISTS error STRING;
 ALTER TABLE re_evaluations ADD COLUMN IF NOT EXISTS replacement_decision_id STRING REFERENCES memory_nodes(id) ON DELETE SET NULL;
 
 ALTER TABLE re_evaluations DROP CONSTRAINT IF EXISTS re_evaluations_status_chk;
-ALTER TABLE re_evaluations ADD CONSTRAINT IF NOT EXISTS re_evaluations_status_chk
+ALTER TABLE re_evaluations ADD CONSTRAINT re_evaluations_status_chk
   CHECK (status IN ('pending','running','completed','failed'));
 
 CREATE INDEX IF NOT EXISTS re_evaluations_pending_idx ON re_evaluations (status, created_at) WHERE status IN ('pending','failed');
+
+-- ══════════ 0007_content_identity.sql ══════════
+CREATE UNIQUE INDEX IF NOT EXISTS memory_nodes_kind_content_hash_key
+ON memory_nodes (kind, content_hash) WHERE kind IN ('source','memory');
+
+DROP INDEX IF EXISTS memory_nodes@memory_nodes_content_hash_key;
