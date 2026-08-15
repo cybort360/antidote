@@ -1,5 +1,5 @@
 /**
- * ANTIDOTE Lambda worker — asynchronous repair and re-evaluation jobs.
+ * ANTIDOTE Lambda worker: asynchronous repair and re-evaluation jobs.
  *
  * Event shapes (see aws/template.yaml):
  *   { type: "repair",     memoryId, actor?, reason? }        → compute blast radius,

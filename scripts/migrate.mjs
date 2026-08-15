@@ -2,7 +2,8 @@
 // ANTIDOTE migration runner. Applies db/migrations/*.sql in order, tracking
 // applied versions + checksums in schema_migrations. Each file runs in a
 // transaction. Requires DATABASE_URL (from .env / .env.local / environment).
-import { readdirSync, readFileSync, existsSync, createHash } from "node:fs";
+import { readdirSync, readFileSync, existsSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
@@ -80,6 +81,12 @@ async function main() {
       await client.query("ROLLBACK");
       console.error(`migrate: ${file} FAILED:`);
       console.error(error.message);
+      if (error.code) console.error(`migrate: SQLSTATE ${error.code}`);
+      if (error.position) {
+        const offset = Math.max(0, Number(error.position) - 1);
+        const line = sql.slice(0, offset).split("\n").length;
+        console.error(`migrate: ${file}:${line}`);
+      }
       process.exitCode = 1;
       return;
     } finally {

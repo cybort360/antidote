@@ -1,9 +1,9 @@
 "use client";
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { demoScenario } from "@/lib/demo";
-import { ContainmentScene } from "./ContainmentScene";
 import { MemoryGraph } from "./MemoryGraph";
 import { Inspector } from "./Inspector";
 import { AttacksView } from "./views/AttacksView";
@@ -274,7 +274,6 @@ export default function AntidoteApp() {
             <span>ANTIDOTE</span>
           </Link>
           <span className="caseId">CASE {run?.runId ?? "ZX-017"}</span>
-          <Link className="howEntryLink" href="/">HOW IT WORKS</Link>
         </div>
         <nav className="viewTabs" role="tablist" aria-label="Case views" aria-orientation="horizontal">
           {VIEWS.map((item, index) => (
@@ -315,8 +314,21 @@ export default function AntidoteApp() {
           >
             <div className="traceSticky">
               <div className="traceGrid" aria-hidden="true" />
-              <div className="traceScene">
-                <ContainmentScene progress={traceProgress} />
+              <div className="traceScene" aria-hidden="true">
+                <Image
+                  className="caseContainmentObject"
+                  src="/images/case-containment-instrument.png"
+                  alt=""
+                  width={1536}
+                  height={1024}
+                  sizes="(max-width: 780px) 110vw, 68vw"
+                  priority
+                />
+                <div className="caseArtifactAxis">
+                  <span>COMPROMISED INPUT</span>
+                  <span>CONTAINMENT GATE</span>
+                  <span>ISOLATED OUTPUTS</span>
+                </div>
               </div>
 
               <div className="traceCopy" key={traceStageIndex}>
@@ -375,7 +387,7 @@ export default function AntidoteApp() {
             </div>
             <div>
               <span>ROOT MEMORY</span>
-              <strong>{rootNode?.label ?? "—"}</strong>
+              <strong>{rootNode?.label ?? "Not recorded"}</strong>
             </div>
             <div>
               <span>RISK</span>
@@ -383,7 +395,7 @@ export default function AntidoteApp() {
             </div>
             <div>
               <span>DEPENDENTS</span>
-              <strong>{rootNode?.descendants ?? "—"}</strong>
+              <strong>{rootNode?.descendants ?? "Not recorded"}</strong>
             </div>
             <div>
               <span>EXTERNAL ACTIONS</span>
@@ -418,7 +430,7 @@ export default function AntidoteApp() {
                 <span><i className="dot muteDot" /> revoked / repaired</span>
                 <span><i className="dot blastDot" /> blast radius preview</span>
               </div>
-              {scenarioState === "fallback" && <p className="emptyNote">live store unavailable — rendering offline case snapshot.</p>}
+              {scenarioState === "fallback" && <p className="emptyNote">The live store is unavailable. Rendering the offline case snapshot.</p>}
             </div>
 
             <aside className="forensic">
@@ -473,7 +485,7 @@ export default function AntidoteApp() {
                 </div>
                 <div className="runGrid">
                   <div className="runCard"><span className="runTag">PROCUREMENT 03</span><b className="mono">{run.procurement.poisonedMemoryId}</b><small>poisoned memory formed</small><small>influenced: {run.procurement.decisionMemoryIds.length} memory(s)</small></div>
-                  <div className="runCard"><span className="runTag">FINANCE 07</span><b>${run.finance.payload?.amount?.toLocaleString() ?? "—"}</b><small>{run.finance.retrievals.length} retrievals logged</small><small>{run.finance.payload?.simulated ? "simulated · never executed" : "external action"}</small></div>
+                  <div className="runCard"><span className="runTag">FINANCE 07</span><b>${run.finance.payload?.amount?.toLocaleString() ?? "Not recorded"}</b><small>{run.finance.retrievals.length} retrievals logged</small><small>{run.finance.payload?.simulated ? "simulated · never executed" : "external action"}</small></div>
                   <div className="runCard"><span className="runTag">OPERATIONS 04</span><b className="mono">{run.operations.derivedMemoryId}</b><small>derived trust memory</small><small>influenced: {run.operations.decisionMemoryIds.length} memory(s)</small></div>
                   <div className="runCard"><span className="runTag">SECURITY 09</span><b className={run.security.verdict === "suspect" ? "danger" : ""}>{run.security.verdict.toUpperCase()}</b><small>{run.security.blastRadius.decisionIds.length} decisions in blast radius</small><small>{run.security.repair?.executed ? "transactional repair executed" : "verdict only"}</small></div>
                 </div>

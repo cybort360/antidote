@@ -82,7 +82,7 @@ export async function recordAttackMemory(input: z.infer<typeof AttackInputSchema
  * confirms a poisoning incident and the repair completes. Captures attack
  * family, source characteristics, semantic representation (embedding), affected
  * entities, attack method, the security verdict, the repair outcome, and full
- * provenance — everything future screenings compare against.
+ * provenance for everything future screenings compare against.
  */
 export async function recordAttackMemoryFromRepair(options: {
   rootMemoryId: string;

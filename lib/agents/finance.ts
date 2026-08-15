@@ -55,7 +55,7 @@ export async function runFinance(options: FinanceOptions = {}): Promise<FinanceR
       kind: "finance",
       query,
       refused: true,
-      refusalReason: "No trusted memory evidence retrieved — the prior approval depended on revoked memory and was not re-derived from clean state.",
+      refusalReason: "No trusted memory evidence was retrieved. The prior approval depended on revoked memory and was not re-derived from clean state.",
       retrievals,
       decisionMemoryIds: [],
     });

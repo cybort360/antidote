@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// ANTIDOTE release verification matrix — exercises every important path
+// ANTIDOTE release verification matrix: exercises every important path
 // against a running instance (demo or live). Credential-free by design, so it
 // verifies the deployed app exactly as a judge would.
 //
@@ -12,7 +12,7 @@ const results = [];
 function record(name, ok, detail) {
   results.push({ name, ok, detail });
   if (!ok) failures += 1;
-  console.log(`${ok ? "✓" : "✗"} ${name}${detail ? ` — ${detail}` : ""}`);
+  console.log(`${ok ? "✓" : "✗"} ${name}${detail ? `: ${detail}` : ""}`);
 }
 
 async function check(name, fn) {
@@ -181,7 +181,7 @@ return { results, failures, total: results.length };
 }
 
 // Dev mode compiles routes on demand; a cold server can race mid-sequence.
-// Run the matrix up to twice — the second pass runs against a warm server.
+// Run the matrix up to twice: the second pass runs against a warm server.
 let final;
 for (let attempt = 1; attempt <= 2; attempt += 1) {
   results.length = 0;
@@ -194,5 +194,5 @@ for (let attempt = 1; attempt <= 2; attempt += 1) {
   if (final.failures === 0 || attempt === 2) break;
   await new Promise((r) => setTimeout(r, 1000));
 }
-console.log(`\n${final.results.filter((r) => r.ok).length}/${final.total} checks passed${final.failures ? ` — ${final.failures} FAILED` : " — all green"}.`);
+console.log(`\n${final.results.filter((r) => r.ok).length}/${final.total} checks passed${final.failures ? `: ${final.failures} FAILED` : ": all green"}.`);
 process.exit(final.failures ? 1 : 0);

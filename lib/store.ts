@@ -38,6 +38,7 @@ import { embeddingDimensions, hasDatabase, isDemo } from "./config";
 import { badRequest, conflict } from "./errors";
 import { fnv1aHex, shortId } from "./hash";
 import { cosineSimilarity, demoVectorSync } from "./embed";
+import { PostgresStore } from "./store-postgres";
 
 export type PreparedMemory = {
   label: string;
@@ -186,6 +187,7 @@ const BLAST_RELATIONS_WITH_SOURCE: EdgeRelation[] = [...BLAST_RELATIONS, "create
 export interface MemoryStore {
   ingestDocument(input: IngestDocumentInput & { jobId: string; contentHash: string; memories: PreparedMemory[]; contentType?: string; actor?: string }): Promise<IngestionResult>;
   findIngestionByKey(idempotencyKey: string): Promise<IngestionResult | null>;
+  findIngestionByContent(sourceUri: string, contentHash: string): Promise<IngestionResult | null>;
   createIngestion(input: { id: string; idempotencyKey?: string; sourceUri: string; contentHash: string; actor?: string }): Promise<IngestionJobRecord>;
   failIngestion(id: string, error: string): Promise<void>;
   getIngestion(id: string): Promise<IngestionJobRecord | null>;
@@ -385,6 +387,11 @@ export class InMemoryStore implements MemoryStore {
 
   async findIngestionByKey(idempotencyKey: string): Promise<IngestionResult | null> {
     const job = [...this.jobs.values()].find((j) => j.idempotencyKey === idempotencyKey);
+    return job?.result ?? null;
+  }
+
+  async findIngestionByContent(sourceUri: string, contentHash: string): Promise<IngestionResult | null> {
+    const job = [...this.jobs.values()].find((candidate) => candidate.sourceUri === sourceUri && candidate.contentHash === contentHash && candidate.status === "completed");
     return job?.result ?? null;
   }
 
@@ -1085,17 +1092,10 @@ function storeRuntime(): StoreRuntimeState {
   return globalStoreRuntime.__antidoteStoreRuntime;
 }
 
-function loadPostgresStore(): MemoryStore {
-  // Imported lazily to avoid pulling pg into demo/browser bundles.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const mod = require("./store-postgres") as typeof import("./store-postgres");
-  return new mod.PostgresStore();
-}
-
 export function getStore(): MemoryStore {
   const runtime = storeRuntime();
   if (!runtime.resolved) {
-    runtime.resolved = isDemo() || !hasDatabase() ? new InMemoryStore(runtime.seedStore) : loadPostgresStore();
+    runtime.resolved = isDemo() || !hasDatabase() ? new InMemoryStore(runtime.seedStore) : new PostgresStore();
   }
   return runtime.resolved;
 }

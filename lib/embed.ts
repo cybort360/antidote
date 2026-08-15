@@ -24,7 +24,7 @@ export class DemoEmbedder implements Embedder {
 /**
  * Deterministic bag-of-hashed-tokens embedding: each token hashes into a
  * dimension with a sign. Cosine similarity therefore reflects lexical and
- * structural overlap (shared entities, account codes, phrasing) — a real
+ * structural overlap (shared entities, account codes, phrasing), a real
  * semantic-adjacent signal without any keyword blacklist, and it is stable
  * across runs so demo scenarios are reproducible.
  */

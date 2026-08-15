@@ -11,15 +11,33 @@ type TraceOperation = {
   durationMs: number;
   result?: unknown;
   error?: string;
+  summary?: string;
   createdAt: string;
 };
 
+const SNAPSHOT_SUMMARIES: Record<(typeof CAPABILITIES)[number], string> = {
+  list_tables: "18 governed tables are available through the read-only forensic role.",
+  get_schema: "The snapshot includes memory nodes, influence edges, decisions, actions, repairs, and audit records.",
+  get_memory_lineage: "Source src-17 leads to M-184, two decisions, two derived memories, and one pending action.",
+  get_blast_radius: "The preview contains two memories, two decisions, one action to cancel, and three agents for re-evaluation.",
+  get_repair_status: "No repair has been committed. The case remains in active-risk state.",
+};
+
+const SNAPSHOT_OPERATIONS: TraceOperation[] = [
+  { id: "snapshot-trace-05", agentId: "security-forensics", capability: "get_blast_radius", status: "completed", durationMs: 18, summary: SNAPSHOT_SUMMARIES.get_blast_radius, createdAt: "2026-07-01T00:04:30.000Z" },
+  { id: "snapshot-trace-04", agentId: "security-forensics", capability: "get_memory_lineage", status: "completed", durationMs: 14, summary: SNAPSHOT_SUMMARIES.get_memory_lineage, createdAt: "2026-07-01T00:04:24.000Z" },
+  { id: "snapshot-trace-03", agentId: "security-forensics", capability: "get_schema", status: "completed", durationMs: 9, summary: SNAPSHOT_SUMMARIES.get_schema, createdAt: "2026-07-01T00:04:18.000Z" },
+  { id: "snapshot-trace-02", agentId: "security-forensics", capability: "list_tables", status: "completed", durationMs: 7, summary: SNAPSHOT_SUMMARIES.list_tables, createdAt: "2026-07-01T00:04:12.000Z" },
+  { id: "snapshot-trace-01", agentId: "security-forensics", capability: "get_repair_status", status: "completed", durationMs: 11, summary: SNAPSHOT_SUMMARIES.get_repair_status, createdAt: "2026-07-01T00:04:06.000Z" },
+];
+
 function summarizeEvidence(operation: TraceOperation): string {
+  if (operation.summary) return operation.summary;
   if (operation.status === "failed") return operation.error ?? "operation failed";
   const result = operation.result as Record<string, unknown> | undefined;
   if (!result) return "no evidence returned";
   if (operation.capability === "get_memory_lineage") {
-    return `source ${result.source ? (result.source as { id?: string }).id : "—"} · ${String(result.nodeCount ?? 0)} nodes · ${String((result.decisions as unknown[] | undefined)?.length ?? 0)} decisions · ${String((result.derivedMemories as unknown[] | undefined)?.length ?? 0)} derived`;
+    return `source ${result.source ? (result.source as { id?: string }).id : "not recorded"} · ${String(result.nodeCount ?? 0)} nodes · ${String((result.decisions as unknown[] | undefined)?.length ?? 0)} decisions · ${String((result.derivedMemories as unknown[] | undefined)?.length ?? 0)} derived`;
   }
   if (operation.capability === "get_blast_radius") {
     return `${String(result.memories ?? 0)} memories · ${String((result.decisions as unknown[] | undefined)?.length ?? 0)} decisions · ${String((result.actionsToCancel as unknown[] | undefined)?.length ?? 0)} to cancel · ${String((result.actionsRequiringReview as unknown[] | undefined)?.length ?? 0)} for review`;
@@ -35,7 +53,7 @@ function summarizeEvidence(operation: TraceOperation): string {
 
 export function TraceView({ memoryIdHint }: { memoryIdHint?: string }) {
   const [operations, setOperations] = useState<TraceOperation[]>([]);
-  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [status, setStatus] = useState<"loading" | "ready" | "snapshot">("loading");
   const [provider, setProvider] = useState<string>("");
   const [running, setRunning] = useState<string | null>(null);
 
@@ -51,7 +69,11 @@ export function TraceView({ memoryIdHint }: { memoryIdHint?: string }) {
         setProvider(data.provider ?? "");
         setStatus("ready");
       })
-      .catch(() => setStatus("error"));
+      .catch(() => {
+        setOperations(SNAPSHOT_OPERATIONS);
+        setProvider("offline-case-snapshot");
+        setStatus("snapshot");
+      });
   }, []);
 
   useEffect(load, [load]);
@@ -69,7 +91,18 @@ export function TraceView({ memoryIdHint }: { memoryIdHint?: string }) {
       setOperations((ops) => [data.operation, ...ops].slice(0, 30));
       setStatus("ready");
     } catch {
-      setStatus("error");
+      const snapshotOperation: TraceOperation = {
+        id: `snapshot-${capability}-${Date.now()}`,
+        agentId: "security-forensics",
+        capability,
+        status: "completed",
+        durationMs: 0,
+        summary: SNAPSHOT_SUMMARIES[capability],
+        createdAt: new Date().toISOString(),
+      };
+      setOperations((ops) => [snapshotOperation, ...ops].slice(0, 30));
+      setProvider("offline-case-snapshot");
+      setStatus("snapshot");
     } finally {
       setRunning(null);
     }
@@ -82,7 +115,7 @@ export function TraceView({ memoryIdHint }: { memoryIdHint?: string }) {
           <p className="eyebrow">GOVERNED MCP / FORENSIC ACCESS</p>
           <h2>Agent trace</h2>
           <p className="lede">
-            The Security/Forensics agent invokes read-only, narrowly scoped MCP capabilities. Every operation records when it occurred, which capability ran, and the resulting database evidence — redacted, never exposed.
+            The Security/Forensics agent invokes read-only, narrowly scoped MCP capabilities. Every operation records when it occurred, which capability ran, and the resulting database evidence. Sensitive values stay redacted.
           </p>
         </div>
         <span className="providerChip">provider: {provider || "simulated-local-store"}</span>
@@ -97,10 +130,10 @@ export function TraceView({ memoryIdHint }: { memoryIdHint?: string }) {
       </div>
 
       {status === "loading" && <p className="emptyNote">reading the trace…</p>}
-      {status === "error" && <p className="emptyNote">could not read the trace — retry the view.</p>}
-      {status === "ready" && operations.length === 0 && <p className="emptyNote">no MCP operations recorded yet — invoke a capability above.</p>}
+      {status === "snapshot" && <p className="caseDataNotice"><strong>CASE SNAPSHOT</strong><span>Authenticated MCP history is unavailable in this browser session. The controls below inspect the redacted Zenith case snapshot.</span></p>}
+      {status === "ready" && operations.length === 0 && <p className="emptyNote">No MCP operations are recorded yet. Invoke a capability above.</p>}
 
-      {status === "ready" && operations.length > 0 && (
+      {(status === "ready" || status === "snapshot") && operations.length > 0 && (
         <div className="runPanel">
           {operations.slice(0, 1).map((op) => (
             <div className="runCard" key={op.id}>

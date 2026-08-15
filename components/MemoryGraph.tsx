@@ -77,7 +77,7 @@ export function MemoryGraph({ scenario, selected, onSelect, blastIds, blastStatu
 
   return (
     <div className="graphWrap">
-      <svg className="graph" viewBox="0 0 900 440" role="img" aria-label="Living causal memory graph — sources, memories, agents, decisions, actions and their influence edges">
+      <svg className="graph" viewBox="0 0 900 440" role="img" aria-label="Living causal memory graph with sources, memories, agents, decisions, actions, and their influence edges">
         <defs>
           <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse">
             <path d="M 28 0 L 0 0 0 28" fill="none" stroke="rgba(255,249,233,.07)" strokeWidth="1" />
@@ -107,10 +107,12 @@ export function MemoryGraph({ scenario, selected, onSelect, blastIds, blastStatu
             repairingEdge ? "repairing" : "",
           ].filter(Boolean).join(" ");
           const marker = edge.relation === "retrieved" ? "url(#arrow-retrieved)" : edge.relation === "produced" ? "url(#arrow-produced)" : "url(#arrow-influenced)";
+          const labelX = edge.id === "e8" ? a.x + (b.x - a.x) * 0.26 : (a.x + b.x) / 2;
+          const labelY = edge.id === "e8" ? a.y + (b.y - a.y) * 0.26 - 11 : (a.y + b.y) / 2 - 10;
           return (
             <g key={edge.id} className={edgeClass}>
               <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} markerEnd={marker} />
-              <text x={(a.x + b.x) / 2} y={(a.y + b.y) / 2 - 8} className="edgeLabel">
+              <text x={labelX} y={labelY} textAnchor="middle" className="edgeLabel">
                 {edge.relation}
               </text>
             </g>

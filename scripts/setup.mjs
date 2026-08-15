@@ -39,11 +39,11 @@ if (!existsSync(join(root, "node_modules"))) {
 
 const databaseUrl = process.env.DATABASE_URL ?? readEnv(envLocal, "DATABASE_URL");
 if (databaseUrl) {
-  console.log("DATABASE_URL detected — applying migrations…");
+  console.log("DATABASE_URL detected: applying migrations…");
   run("node", ["scripts/migrate.mjs"], { env: { ...process.env, DATABASE_URL: databaseUrl } });
   console.log("hint: apply roles with: cockroach sql --url \"$DATABASE_URL\" -f db/roles.sql");
 } else {
-  console.log("no DATABASE_URL — running in credential-free DEMO_MODE");
+  console.log("no DATABASE_URL: running in credential-free DEMO_MODE");
 }
 
 console.log(`

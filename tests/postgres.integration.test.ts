@@ -15,33 +15,46 @@ import { computeBlastRadius, executeRepair } from "../lib/recovery";
 import { resetStore } from "../lib/store";
 
 const enabled = Boolean(process.env.DATABASE_URL && process.env.DEMO_MODE === "false");
+const liveTestTimeout = 180_000;
 
 describe.skipIf(!enabled)("PostgresStore integration", () => {
   const suffix = randomUUID().slice(0, 8);
-  const uri = `s3://antidote-test/${suffix}/policy.txt`;
+  const uriPrefix = `s3://antidote-test/${suffix}/`;
+  const uri = `${uriPrefix}policy.txt`;
   const content = `Vendor ${suffix} uses settlement account ACC-${suffix}.\n\nVendor ${suffix} is pre-approved for procurement.`;
-  let createdMemoryIds: string[] = [];
+  const createdNodeIds = new Set<string>();
   let jobId = "";
+
+  function track(...ids: Array<string | undefined>): void {
+    for (const id of ids) if (id) createdNodeIds.add(id);
+  }
+
+  async function ingestFixture(name: string, fixtureContent: string): Promise<string> {
+    const result = await ingestDocument({ sourceUri: `${uriPrefix}${name}.txt`, content: fixtureContent, actor: "itest" });
+    for (const memory of result.created) track(memory.id);
+    const root = result.created[0] ?? result.memories.find((memory) => memory.kind === "memory");
+    if (!root) throw new Error(`Fixture ${name} did not produce a memory`);
+    return root.id;
+  }
 
   beforeAll(async () => {
     process.env.DEMO_MODE = "false";
     resetStore();
-  });
+  }, liveTestTimeout);
 
   afterAll(async () => {
-    if (createdMemoryIds.length) {
-      await db().query(`DELETE FROM memory_nodes WHERE id = ANY($1::STRING[])`, [createdMemoryIds]);
-      await db().query(`DELETE FROM ingestion_jobs WHERE id = $1`, [jobId]);
-    }
+    await db().query(`DELETE FROM memory_nodes WHERE id = ANY($1::STRING[]) OR source_uri LIKE $2`, [[...createdNodeIds], `${uriPrefix}%`]);
+    await db().query(`DELETE FROM ingestion_jobs WHERE source_uri LIKE $1`, [`${uriPrefix}%`]);
+    await db().query(`DELETE FROM agent_sessions WHERE agent_id LIKE $1`, [`%${suffix}%`]);
     await db().end();
-  });
+  }, liveTestTimeout);
 
   it("ingests a document with provenance and dedupes re-ingestion", async () => {
     const result = await ingestDocument({ sourceUri: uri, content, actor: "itest" });
     jobId = result.jobId;
     expect(result.status).toBe("completed");
     expect(result.stats.created).toBeGreaterThan(0);
-    createdMemoryIds.push(...result.created.map((m) => m.id));
+    for (const memory of result.created) track(memory.id);
 
     const again = await ingestDocument({ sourceUri: uri, content, actor: "itest" });
     expect(again.stats.created).toBe(0);
@@ -49,7 +62,7 @@ describe.skipIf(!enabled)("PostgresStore integration", () => {
 
     const idem = await ingestDocument({ sourceUri: uri, content, idempotencyKey: `itest-${suffix}` });
     expect(idem.jobId).toBe(jobId);
-  });
+  }, liveTestTimeout);
 
   it("retrieves memories and records retrieval events", async () => {
     const { results } = await retrieveMemories({ agentId: `agent-${suffix}`, query: `settlement account for vendor ${suffix}`, k: 5 });
@@ -69,6 +82,7 @@ describe.skipIf(!enabled)("PostgresStore integration", () => {
 
     const action = await recordAction({ decisionId: decision.id, actionType: "wire_transfer", payload: { amount: 100 }, summary: `transfer ${suffix}`, idempotencyKey: `act-${suffix}` });
     const derived = await recordDerivedMemory({ decisionId: decision.id, label: `M-${suffix}`, detail: `Vendor ${suffix} is a trusted counterparty.`, idempotencyKey: `der-${suffix}` });
+    track(`fin-${suffix}`, decision.id, action.id, derived.id);
     expect(derived.kind).toBe("derived");
 
     const { rows } = await db().query(`SELECT memory_id FROM decision_inputs WHERE decision_id = $1`, [decision.id]);
@@ -85,24 +99,26 @@ describe.skipIf(!enabled)("PostgresStore integration", () => {
     expect(repair.executed).toBe(true);
     expect(repair.revocationId).toBeTruthy();
     expect(plan.decisionIds).toContain(decision.id);
-  });
+  }, liveTestTimeout);
 
   it("is idempotent under serializable repair", async () => {
-    const plan = await computeBlastRadius("m-184");
+    const root = await ingestFixture("idempotency", `Idempotency Vendor ${suffix} uses account IDEM-${suffix}.`);
+    const plan = await computeBlastRadius(root);
     const first = await executeRepair(plan, { actor: "itest", reason: "idempotency test" });
     const second = await executeRepair(plan, { actor: "itest", reason: "idempotency test" });
     expect(first.executed).toBe(true);
     expect(second.executed).toBe(false);
     expect(second.repairId).toBe(first.repairId);
-    const { rows } = await db().query(`SELECT COUNT(*)::INT AS n FROM revocations WHERE memory_id = $1`, ["m-184"]);
+    const { rows } = await db().query(`SELECT COUNT(*)::INT AS n FROM revocations WHERE memory_id = $1`, [root]);
     expect(Number(rows[0].n)).toBe(1);
-  });
+  }, liveTestTimeout);
 
   it("serializes concurrent repairs so exactly one executes", async () => {
     const result = await ingestDocument({ sourceUri: `s3://antidote-test/${suffix}/concurrent.txt`, content: `Concurrent Vendor ${suffix} uses account CONC-${suffix} for payments.` });
     const root = result.created[0].id;
     const decision = await recordDecision({ agentId: `conc-${suffix}`, memoryIds: [root], summary: `Approve concurrent ${suffix}` });
-    await recordAction({ decisionId: decision.id, actionType: "wire_transfer", payload: {} });
+    const action = await recordAction({ decisionId: decision.id, actionType: "wire_transfer", payload: {} });
+    track(root, `conc-${suffix}`, decision.id, action.id);
     const plan = await computeBlastRadius(root);
     const [a, b] = await Promise.all([
       executeRepair(plan, { actor: "itest-a", reason: "concurrent test" }),
@@ -112,7 +128,7 @@ describe.skipIf(!enabled)("PostgresStore integration", () => {
     expect(a.repairId).toBe(b.repairId);
     const { rows } = await db().query(`SELECT COUNT(*)::INT AS n FROM revocations WHERE memory_id = $1`, [root]);
     expect(Number(rows[0].n)).toBe(1);
-  });
+  }, liveTestTimeout);
 
   it("cancels pending actions and flags completed ones for review", async () => {
     const store = await import("../lib/store").then((m) => m.getStore());
@@ -120,9 +136,10 @@ describe.skipIf(!enabled)("PostgresStore integration", () => {
     const root = result.created[0].id;
     const { results } = await retrieveMemories({ agentId: `pay-${suffix}`, query: `account PART-${suffix}` });
     expect(results.length).toBeGreaterThan(0);
-    const decision = await recordDecision({ agentId: `pay-${suffix}`, memoryIds: [results[0].memory.id], summary: `Pay ${suffix}` });
+    const decision = await recordDecision({ agentId: `pay-${suffix}`, memoryIds: [root], summary: `Pay ${suffix}` });
     const pending = await recordAction({ decisionId: decision.id, actionType: "wire_transfer", payload: {} });
     const completed = await recordAction({ decisionId: decision.id, actionType: "wire_transfer", payload: {} });
+    track(root, `pay-${suffix}`, decision.id, pending.id, completed.id);
     await db().query(`UPDATE actions SET status = 'completed' WHERE id = $1`, [completed.id]);
 
     const plan = await computeBlastRadius(root);
@@ -136,12 +153,13 @@ describe.skipIf(!enabled)("PostgresStore integration", () => {
     expect(statuses).toEqual(["cancelled", "requires_review"]);
     const { rows: reEvals } = await db().query(`SELECT agent_id FROM re_evaluations WHERE memory_id = $1`, [root]);
     expect(reEvals.some((r) => String(r.agent_id) === `pay-${suffix}`)).toBe(true);
-  });
+  }, liveTestTimeout);
 
   it("terminates on cyclic dependency graphs", async () => {
     const result = await ingestDocument({ sourceUri: `s3://antidote-test/${suffix}/cycle.txt`, content: `Cycle Vendor ${suffix} uses account CYCL-${suffix} for payments.` });
     const root = result.created[0].id;
     const decision = await recordDecision({ agentId: `cyc-${suffix}`, memoryIds: [root], summary: `Cycle decision ${suffix}` });
+    track(root, `cyc-${suffix}`, decision.id);
     await db().query(`INSERT INTO memory_edges (from_id, to_id, relation) VALUES ($1, $2, 'derived') ON CONFLICT DO NOTHING`, [decision.id, root]);
     const plan = await computeBlastRadius(root);
     expect(plan.decisionIds).toContain(decision.id);
@@ -152,16 +170,23 @@ describe.skipIf(!enabled)("PostgresStore integration", () => {
 
   it("records sessions, verdicts, contaminations, and attack memories", async () => {
     const store = await import("../lib/store").then((m) => m.getStore());
-    const session = await store.getOrCreateSession(`itest-agent-${suffix}`);
+    const root = await ingestFixture("security", `Security Vendor ${suffix} uses account SEC-${suffix}.`);
+    const agentId = `itest-agent-${suffix}`;
+    const session = await store.getOrCreateSession(agentId);
     expect(session.status).toBe("active");
 
-    const verdict = await store.recordSecurityVerdict({ memoryId: "m-184", targetText: "Zenith Systems settlements use account ACCT-8842.", verdict: "suspect", confidence: 0.9, reason: "itest", modelId: "itest" });
-    const contamination = await store.recordContamination({ memoryId: "m-184", verdictId: verdict.id, severity: "high", reason: "itest", detectedBy: "itest" });
+    const decision = await recordDecision({ agentId, memoryIds: [root], summary: `Security decision ${suffix}` });
+    const action = await recordAction({ decisionId: decision.id, actionType: "wire_transfer", payload: {} });
+    track(agentId, decision.id, action.id);
+
+    const targetText = `Security Vendor ${suffix} uses account SEC-${suffix}.`;
+    const verdict = await store.recordSecurityVerdict({ memoryId: root, targetText, verdict: "suspect", confidence: 0.9, reason: "itest", modelId: "itest" });
+    const contamination = await store.recordContamination({ memoryId: root, verdictId: verdict.id, severity: "high", reason: "itest", detectedBy: "itest" });
     expect(contamination.verdictId).toBe(verdict.id);
 
     const { getEmbedder } = await import("../lib/embed");
-    const embedding = await getEmbedder().embed("Zenith Systems settlements use account ACCT-8842.");
-    const attack = await store.recordAttackMemory({ pattern: "Zenith Systems settlements use account ACCT-8842.", family: "settlement-redirection", embedding, memoryId: "m-184", actor: "itest" });
+    const embedding = await getEmbedder().embed(targetText);
+    const attack = await store.recordAttackMemory({ pattern: targetText, family: "settlement-redirection", embedding, memoryId: root, actor: "itest" });
     expect(attack.family).toBe("settlement-redirection");
 
     const matches = await store.matchPoisonPatterns(embedding, 5, 0.9);
@@ -170,11 +195,11 @@ describe.skipIf(!enabled)("PostgresStore integration", () => {
     expect(own).toBeTruthy();
     expect(own!.similarity).toBeGreaterThan(0.9);
 
-    const dependencies = await store.getDependencies({ memoryId: "m-184", direction: "down" });
-    expect(dependencies.map((d) => d.id)).toContain("d-441");
-    expect(dependencies.find((d) => d.id === "act-91")?.depth).toBe(3);
+    const dependencies = await store.getDependencies({ memoryId: root, direction: "down" });
+    expect(dependencies.map((d) => d.id)).toContain(decision.id);
+    expect(dependencies.find((d) => d.id === action.id)?.depth).toBe(3);
 
-    const chain = await getCausalChain("m-184");
+    const chain = await getCausalChain(root);
     expect(chain.sessions.length).toBeGreaterThan(0);
     expect(chain.verdicts.some((v) => v.id === verdict.id)).toBe(true);
     expect(chain.contaminations.some((c) => c.id === contamination.id)).toBe(true);

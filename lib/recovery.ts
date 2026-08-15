@@ -21,7 +21,7 @@ export async function executeRepair(
 
   // Confirmed poisoning becomes a trusted, enriched attack memory (second
   // learning loop): family, entities, method, verdict, repair outcome,
-  // provenance — best effort.
+  // Provenance is best effort.
   if (result.executed) {
     try {
       const root = await store.getMemory(plan.rootMemoryId);

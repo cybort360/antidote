@@ -1,5 +1,5 @@
 /**
- * Release integration tests — the complete flagship scenario:
+ * Release integration tests: the complete flagship scenario:
  *   malicious source → poisoned memory → cross-agent propagation →
  *   blast-radius simulation → repair → fresh Finance refuses →
  *   paraphrased repeat attack detected from attack memory.

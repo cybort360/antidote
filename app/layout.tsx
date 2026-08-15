@@ -2,7 +2,7 @@ import "./styles.css";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "ANTIDOTE — Causal recovery for poisoned AI memory",
+  title: "ANTIDOTE | Causal recovery for poisoned AI memory",
   description: "Trace, revoke, and repair the downstream influence of compromised agent memory."
 };
 

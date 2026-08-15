@@ -69,6 +69,14 @@ export class PostgresStore implements MemoryStore {
     return rows[0].result as IngestionResult;
   }
 
+  async findIngestionByContent(sourceUri: string, contentHash: string): Promise<IngestionResult | null> {
+    const { rows } = await db().query(
+      `SELECT result FROM ingestion_jobs WHERE source_uri = $1 AND content_hash = $2 AND status = 'completed' ORDER BY completed_at DESC LIMIT 1`,
+      [sourceUri, contentHash],
+    );
+    return rows.length ? rows[0].result as IngestionResult : null;
+  }
+
   async createIngestion(input: { id: string; idempotencyKey?: string; sourceUri: string; contentHash: string; actor?: string }): Promise<IngestionJobRecord> {
     await db().query(`INSERT INTO ingestion_jobs (id, idempotency_key, source_uri, content_hash, actor, status) VALUES ($1,$2,$3,$4,$5,'running')`, [input.id, input.idempotencyKey ?? null, input.sourceUri, input.contentHash, input.actor ?? null]);
     return { id: input.id, sourceUri: input.sourceUri, status: "running", idempotencyKey: input.idempotencyKey, contentHash: input.contentHash, createdAt: new Date().toISOString() };
@@ -80,7 +88,7 @@ export class PostgresStore implements MemoryStore {
       const sourceInsert = await query(
         `INSERT INTO memory_nodes (id, kind, label, detail, content, content_hash, source_uri, status, trust, metadata)
          VALUES ($1, 'source', $2, $3, $4, $5, $6, 'trusted', 1.0, $7::JSONB)
-         ON CONFLICT (content_hash) WHERE kind IN ('source','memory') DO NOTHING
+         ON CONFLICT (kind, content_hash) WHERE kind IN ('source','memory') DO NOTHING
          RETURNING id`,
         [sourceId, input.sourceUri.split("/").pop() ?? input.sourceUri, input.sourceUri, input.content, input.contentHash, input.sourceUri, JSON.stringify({ contentType: input.contentType ?? null })],
       );
@@ -93,7 +101,7 @@ export class PostgresStore implements MemoryStore {
         const inserted = await query(
           `INSERT INTO memory_nodes (id, kind, label, detail, content, content_hash, source_uri, status, trust, embedding, metadata)
            VALUES ($1, 'memory', $2, $3, $4, $5, $6, $7, 1.0, $8::VECTOR, $9::JSONB)
-           ON CONFLICT (content_hash) WHERE kind IN ('source','memory') DO NOTHING
+           ON CONFLICT (kind, content_hash) WHERE kind IN ('source','memory') DO NOTHING
            RETURNING ${NODE_FIELDS}`,
           [memoryId, candidate.label, candidate.detail, candidate.content, candidate.contentHash, input.sourceUri, candidate.status ?? "trusted", toVector(candidate.embedding), JSON.stringify({ contentType: input.contentType ?? null, extractor: "pipeline", ...(screeningMeta ? { screening: screeningMeta } : {}) })],
         );
@@ -103,7 +111,7 @@ export class PostgresStore implements MemoryStore {
             await query(`INSERT INTO memory_edges (from_id, to_id, relation) VALUES ($1, $2, 'created') ON CONFLICT DO NOTHING`, [persistedSourceId, String(inserted.rows[0].id)]);
           }
         } else {
-          const { rows } = await query(`SELECT ${NODE_FIELDS} FROM memory_nodes WHERE content_hash = $1 AND kind IN ('source','memory') LIMIT 1`, [candidate.contentHash]);
+          const { rows } = await query(`SELECT ${NODE_FIELDS} FROM memory_nodes WHERE content_hash = $1 AND kind = 'memory' LIMIT 1`, [candidate.contentHash]);
           duplicates.push(rowToMemory(rows[0]));
         }
       }
@@ -486,16 +494,24 @@ export class PostgresStore implements MemoryStore {
     // UNION (set semantics) + depth bound protects against cyclic dependency
     // graphs while capturing depth for the simulation view.
     const { rows } = await db().query(
-      `WITH RECURSIVE blast(id, depth) AS (
-         SELECT $1::STRING, 0::INT
-         UNION
-         SELECT e.to_id, b.depth + 1
+      `WITH RECURSIVE blast(id, depth, path) AS (
+         SELECT $1::STRING, 0::INT, ARRAY[$1::STRING]::STRING[]
+         UNION ALL
+         SELECT e.to_id, b.depth + 1, array_append(b.path, e.to_id)
          FROM memory_edges e
          JOIN blast b ON e.from_id = b.id
-         WHERE e.relation = ANY($2::STRING[]) AND b.depth < 100
+         WHERE e.relation = ANY($2::STRING[])
+           AND b.depth < 99
+           AND NOT e.to_id = ANY(b.path)
+       ), bounded AS (
+         SELECT id, min(depth)::INT AS depth
+         FROM blast
+         GROUP BY id
+         ORDER BY depth, id
+         LIMIT 100
        )
        SELECT n.id, n.kind, n.status, b.depth
-       FROM blast b JOIN memory_nodes n ON n.id = b.id`,
+       FROM bounded b JOIN memory_nodes n ON n.id = b.id`,
       [rootMemoryId, [...BLAST_RELATIONS, "created"]],
     );
     const nodes: RepairPlanNode[] = rows.map((r) => ({ id: String(r.id), kind: String(r.kind) as NodeKind, status: String(r.status) as NodeStatus, depth: Number(r.depth) }));
@@ -684,7 +700,7 @@ export class PostgresStore implements MemoryStore {
 
   async recordAttackMemory(input: RecordAttackInput): Promise<AttackMemory> {
     const { rows } = await db().query(
-      `INSERT INTO attack_memories (pattern, family, embedding, memory_id, revocation_id, actor, affected_entities, source_characteristics, attack_method, verdict, verdict_confidence, verdict_reason, repair_id, provenance)
+      `INSERT INTO attack_memories (pattern, "family", embedding, memory_id, revocation_id, actor, affected_entities, source_characteristics, attack_method, verdict, verdict_confidence, verdict_reason, repair_id, provenance)
        VALUES ($1,$2,$3::VECTOR,$4,$5,$6,$7::STRING[],$8::JSONB,$9,$10,$11,$12,$13,$14::JSONB) RETURNING id, created_at`,
       [
         input.pattern,
@@ -727,7 +743,7 @@ export class PostgresStore implements MemoryStore {
 
   async listAttackMemories(limit = 100): Promise<AttackMemory[]> {
     const { rows } = await db().query(
-      `SELECT id, pattern, family, memory_id, revocation_id, actor, affected_entities, source_characteristics, attack_method, verdict, verdict_confidence, verdict_reason, repair_id, provenance, created_at
+      `SELECT id, pattern, "family", memory_id, revocation_id, actor, affected_entities, source_characteristics, attack_method, verdict, verdict_confidence, verdict_reason, repair_id, provenance, created_at
        FROM attack_memories ORDER BY created_at DESC LIMIT $1`,
       [limit],
     );
@@ -813,7 +829,7 @@ export class PostgresStore implements MemoryStore {
 
   async matchPoisonPatterns(queryEmbedding: number[], k = 3, minSimilarity = 0.6): Promise<AttackMemoryMatch[]> {
     const { rows } = await db().query(
-      `SELECT id, pattern, family, memory_id, revocation_id, actor, affected_entities, source_characteristics, attack_method, verdict, verdict_confidence, verdict_reason, repair_id, provenance, created_at,
+      `SELECT id, pattern, "family", memory_id, revocation_id, actor, affected_entities, source_characteristics, attack_method, verdict, verdict_confidence, verdict_reason, repair_id, provenance, created_at,
               1 - (embedding <=> $1::VECTOR) AS similarity
        FROM attack_memories
        WHERE embedding IS NOT NULL AND 1 - (embedding <=> $1::VECTOR) >= $2

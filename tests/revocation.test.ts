@@ -193,7 +193,7 @@ describe("execute repair", () => {
     expect(first.executed).toBe(true);
 
     // A second call recomputes the plan: the action is already cancelled, so the
-    // plan differs, but the root is repaired — the call must replay, not re-run.
+    // plan differs, but the root is repaired: the call must replay, not re-run.
     const secondPlan = await computeBlastRadius(m1.id);
     expect(secondPlan.cancelActionIds).toEqual([]);
     const second = await executeRepair(secondPlan, { actor: "sec-01" });

@@ -80,7 +80,7 @@ export function AttacksView() {
         <div>
           <p className="eyebrow">THREAT INTELLIGENCE / INCIDENT RECORDS</p>
           <h2>Attack memory</h2>
-          <p className="lede">Every confirmed poisoning incident becomes a trusted, vector-searchable record — family, entities, method, verdict, repair outcome, provenance. New candidates are screened against these before they can be trusted.</p>
+          <p className="lede">Every confirmed poisoning incident becomes a trusted, vector-searchable record containing its family, entities, method, verdict, repair outcome, and provenance. New candidates are screened against these records before trust.</p>
         </div>
         <button className="primary" onClick={runReplay} disabled={replayBusy}>
           {replayBusy ? "REPLAYING…" : "REPLAY SECOND ATTACK"}
@@ -109,7 +109,7 @@ export function AttacksView() {
                 {candidate.evidence.map((evidence, j) => (
                   <small key={j} className="runEvidence">
                     {evidence.factor.toUpperCase()} · {evidence.family}
-                    {evidence.similarity !== undefined ? ` · sim ${evidence.similarity.toFixed(3)}` : ""} — {evidence.detail}
+                    {evidence.similarity !== undefined ? ` · sim ${evidence.similarity.toFixed(3)}` : ""}: {evidence.detail}
                   </small>
                 ))}
               </div>
@@ -138,7 +138,7 @@ export function AttacksView() {
       </div>
 
       {status === "loading" && <p className="emptyNote">loading incident records…</p>}
-      {status === "error" && <p className="emptyNote">could not load incident records — retry the view.</p>}
+      {status === "error" && <p className="emptyNote">Could not load incident records. Retry the view.</p>}
       {status === "ready" && attacks.length === 0 && <p className="emptyNote">no confirmed incidents yet. Run the autonomous demo to create one.</p>}
 
       {status === "ready" && attacks.length > 0 && (
@@ -162,21 +162,21 @@ export function AttacksView() {
               <dl className="kv">
                 <div>
                   <dt>METHOD</dt>
-                  <dd>{attack.attackMethod ?? "—"}</dd>
+                  <dd>{attack.attackMethod ?? "Not recorded"}</dd>
                 </div>
                 <div>
                   <dt>VERDICT</dt>
                   <dd className={`badge badge-status ${attack.verdict ?? "review"}`}>
-                    {attack.verdict?.toUpperCase() ?? "—"} · {Math.round((attack.verdictConfidence ?? 0) * 100)}%
+                    {attack.verdict?.toUpperCase() ?? "Not recorded"} · {Math.round((attack.verdictConfidence ?? 0) * 100)}%
                   </dd>
                 </div>
                 <div>
                   <dt>REPAIR</dt>
-                  <dd className="mono">{attack.repairId ?? "—"}</dd>
+                  <dd className="mono">{attack.repairId ?? "Not recorded"}</dd>
                 </div>
                 <div>
                   <dt>SOURCE</dt>
-                  <dd className="mono">{typeof attack.provenance?.sourceUri === "string" ? attack.provenance.sourceUri : "—"}</dd>
+                  <dd className="mono">{typeof attack.provenance?.sourceUri === "string" ? attack.provenance.sourceUri : "Not recorded"}</dd>
                 </div>
                 <div>
                   <dt>RECORDED</dt>

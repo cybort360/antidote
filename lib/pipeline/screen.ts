@@ -9,7 +9,7 @@ export type ScreenInput = {
   sourceUri: string;
 };
 
-// Weighted multi-factor risk model — semantic (vector), structural entity
+// Weighted multi-factor risk model with semantic (vector), structural entity
 // overlap, source characteristics, and attack-method signal. Not a blacklist:
 // each factor is computed against known *revoked* incidents.
 export const SCREENING_WEIGHTS = { semantic: 0.45, entity: 0.4, source: 0.1, method: 0.05 } as const;

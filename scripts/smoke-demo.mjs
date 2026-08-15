@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// ANTIDOTE smoke test — verifies health, scenario, pipeline, and recovery API paths.
+// ANTIDOTE smoke test: verifies health, scenario, pipeline, and recovery API paths.
 // Works in DEMO_MODE (no credentials). Run: node scripts/smoke-demo.mjs
 const base = process.env.BASE_URL ?? "http://localhost:3000";
 

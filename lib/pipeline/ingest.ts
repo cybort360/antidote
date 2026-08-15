@@ -18,6 +18,21 @@ export async function ingestDocument(input: IngestDocumentInput): Promise<Ingest
   }
 
   const contentHash = await sha256Hex(data.content);
+  const priorContent = await store.findIngestionByContent(data.sourceUri, contentHash);
+  if (priorContent) {
+    const duplicates = priorContent.memories;
+    return {
+      ...priorContent,
+      created: [],
+      duplicates,
+      stats: {
+        candidates: priorContent.stats.candidates,
+        created: 0,
+        duplicates: duplicates.length,
+        failed: 0,
+      },
+    };
+  }
   const jobId = shortId("ing");
   await store.createIngestion({ id: jobId, idempotencyKey: data.idempotencyKey, sourceUri: data.sourceUri, contentHash, actor: data.actor });
 
@@ -51,7 +66,7 @@ export async function ingestDocument(input: IngestDocumentInput): Promise<Ingest
 
     const result = await store.ingestDocument({ ...data, jobId, contentHash, memories });
 
-    // Immutable source archival (S3 Object Lock) — best effort, live mode only.
+    // Immutable source archival through S3 Object Lock is best effort and live mode only.
     if (process.env.EVIDENCE_BUCKET && process.env.AWS_REGION) {
       try {
         const { archiveSourceDocument } = await import("../evidence");

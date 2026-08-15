@@ -1,4 +1,4 @@
-# ANTIDOTE AWS SAM template — least-privilege deployment for the repair /
+# ANTIDOTE AWS SAM template: least-privilege deployment for the repair /
 # re-evaluation worker and the immutable evidence bucket.
 #
 # Deploy:
@@ -8,7 +8,7 @@
 #     BedrockModelId=amazon.nova-lite-v1:0
 #
 # Environment secrets (DATABASE_URL, AWS credentials) come from the runtime
-# environment / SSM Parameter Store — never from the bundle or the browser.
+# environment / SSM Parameter Store: never from the bundle or the browser.
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: ANTIDOTE async repair/re-evaluation worker + immutable evidence archive

@@ -24,7 +24,7 @@ type InspectorProps = {
 };
 
 function fmtTime(iso?: string): string {
-  if (!iso) return "—";
+  if (!iso) return "Not recorded";
   return new Date(iso).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
@@ -62,9 +62,9 @@ export function Inspector({ node, onSimulate, busy }: InspectorProps) {
     node.kind === "agent"
       ? node.label
       : node.kind === "decision"
-        ? lineage?.decisions?.find((d) => d.id === node.id)?.agentId ?? "—"
+        ? lineage?.decisions?.find((d) => d.id === node.id)?.agentId ?? "Not recorded"
         : node.kind === "action"
-          ? lineage?.actions?.find((a) => a.id === node.id)?.decisionId ?? "—"
+          ? lineage?.actions?.find((a) => a.id === node.id)?.decisionId ?? "Not recorded"
           : lineage?.memory?.sourceUri ?? node.detail;
 
   const descendantCounts = dependencies.reduce<Record<string, number>>((acc, dep) => {
@@ -113,7 +113,7 @@ export function Inspector({ node, onSimulate, busy }: InspectorProps) {
           </div>
           <div>
             <dt>CONTENT HASH</dt>
-            <dd className="mono">{lineage?.memory?.contentHash ? lineage.memory.contentHash.slice(0, 16) + "…" : "—"}</dd>
+            <dd className="mono">{lineage?.memory?.contentHash ? lineage.memory.contentHash.slice(0, 16) + "…" : "Not recorded"}</dd>
           </div>
         </dl>
       </section>
@@ -205,7 +205,7 @@ export function Inspector({ node, onSimulate, busy }: InspectorProps) {
           </div>
           <div>
             <dt>INFLUENCED DECISIONS</dt>
-            <dd>{node.usedBy ?? "—"}</dd>
+            <dd>{node.usedBy ?? "Not recorded"}</dd>
           </div>
         </dl>
       </section>

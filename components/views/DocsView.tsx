@@ -1,7 +1,7 @@
 const PROTOCOL = [
   { step: "01", title: "Security verdict marks a memory suspect", detail: "OpenCode Go, Bedrock, or an operator classifies the memory; the verdict and confidence are recorded immutably." },
   { step: "02", title: "Recursive graph traversal computes descendants", detail: "A cycle-safe recursive closure walks retrieved / influenced / produced / derived edges from the root." },
-  { step: "03", title: "Simulation previews affected artifacts", detail: "The dry run returns exactly what will be revoked, quarantined, invalidated, cancelled, or flagged for review — before any state changes." },
+  { step: "03", title: "Simulation previews affected artifacts", detail: "The dry run returns exactly what will be revoked, quarantined, invalidated, cancelled, or flagged for review before any state changes." },
   { step: "04", title: "A transaction revokes and quarantines", detail: "SERIALIZABLE isolation + a row lock on the root; no agent ever observes a half-repaired graph." },
   { step: "05", title: "External actions are cancelled or escalated", detail: "Pending actions cancel; completed/executing actions become requires_review for human remediation." },
   { step: "06", title: "Affected agents re-evaluate from clean memory", detail: "The worker starts fresh sessions and records replacement decisions or refusals with execution evidence." },
@@ -34,7 +34,7 @@ export function DocsView() {
           <span className="docIndex">I</span>
           <h3>Core invariant</h3>
           <blockquote>Revoking a memory must revoke its influence.</blockquote>
-          <p>Deleting a compromised vector does not undo decisions already made from it. ANTIDOTE records causal lineage at decision time so downstream state can be recomputed later — and repairs it transactionally.</p>
+          <p>Deleting a compromised vector does not undo decisions already made from it. ANTIDOTE records causal lineage at decision time, so downstream state can be recomputed and repaired transactionally.</p>
         </article>
 
         <article className="docCard">
@@ -87,19 +87,19 @@ export function DocsView() {
           <span className="docIndex">V</span>
           <h3>Second learning loop</h3>
           <p>Confirmed poisoning incidents become trusted attack memories: family, source characteristics, semantic embedding, affected entities, method, verdict, repair outcome, provenance.</p>
-          <p>Every candidate memory is screened before trust — semantic vector search plus structural entity, source, and method evidence — and quarantined at or above the risk threshold.</p>
+          <p>Every candidate memory is screened before trust using semantic vector search plus structural entity, source, and method evidence. Candidates at or above the risk threshold are quarantined.</p>
         </article>
 
         <article className="docCard">
           <span className="docIndex">VI</span>
           <h3>Sponsor stack</h3>
           <ul className="docList">
-            <li><b>CockroachDB</b> — system of record; distributed transactions, VECTOR search, recursive CTEs, inverted indexes.</li>
-            <li><b>CockroachDB Cloud MCP</b> — governed read-only access for the Security/Forensics agent (SELECT-scoped role).</li>
-            <li><b>Amazon Bedrock</b> — agent reasoning, structured decisions, extraction, embeddings, verdicts.</li>
-            <li><b>OpenCode Go</b> — OpenAI-compatible structured reasoning, extraction, and security verdicts.</li>
-            <li><b>AWS Lambda</b> — async repair and re-evaluation jobs, idempotent by design.</li>
-            <li><b>AWS S3 Object Lock</b> — immutable source and evidence archive.</li>
+            <li><b>CockroachDB:</b> system of record, distributed transactions, VECTOR search, recursive CTEs, and inverted indexes.</li>
+            <li><b>CockroachDB Cloud MCP:</b> governed read-only access for the Security/Forensics agent through a SELECT-scoped role.</li>
+            <li><b>Amazon Bedrock:</b> agent reasoning, structured decisions, extraction, embeddings, and verdicts.</li>
+            <li><b>OpenCode Go:</b> OpenAI-compatible structured reasoning, extraction, and security verdicts.</li>
+            <li><b>AWS Lambda:</b> asynchronous repair and re-evaluation jobs with idempotent execution.</li>
+            <li><b>AWS S3 Object Lock:</b> immutable source and evidence archive.</li>
           </ul>
         </article>
       </div>

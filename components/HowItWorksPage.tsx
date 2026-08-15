@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
 const QUICKSTART = `npm run setup
@@ -306,6 +307,20 @@ export default function HowItWorksPage() {
             <a className="howTextLink" href="#mechanism">SEE THE CHAIN <span aria-hidden="true">↓</span></a>
           </div>
         </div>
+        <figure className="howHeroVisual">
+          <span className="howHeroOrbit" aria-hidden="true" />
+          <div className="howHeroArtifact">
+            <Image
+              src="/images/causal-memory-vault-v2.png"
+              alt="Three ceramic memory capsules linked around an exposed red poisoned-memory core"
+              width={1122}
+              height={1402}
+              priority
+              sizes="(max-width: 560px) 94vw, (max-width: 1000px) 60vw, 44vw"
+            />
+          </div>
+          <figcaption><span>OBJECT 01</span> CAUSAL MEMORY VAULT</figcaption>
+        </figure>
       </section>
 
       <section className="assayProduct stackCard" id="mechanism" aria-labelledby="product-proof-title">

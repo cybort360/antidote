@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════
-   ANTIDOTE — forensic/security interface
+   ANTIDOTE forensic/security interface
    Restrained palette, editorial serif display, mono data accents.
    No neon, no glow. Motion is subtle and respectful of
    prefers-reduced-motion.
@@ -1265,6 +1265,7 @@ button:disabled {
   --dangerWash: rgba(143, 41, 31, 0.09);
   --okWash: rgba(23, 21, 15, 0.07);
   --accentWash: rgba(255, 90, 31, 0.12);
+  --case-frame: min(1404px, calc(100% - 36px));
   min-height: 100svh;
   color: var(--fg);
   background: var(--bg);
@@ -1275,16 +1276,17 @@ button:disabled {
 }
 
 .antidoteShell .topbar {
-  top: 10px;
-  width: calc(100% - 36px);
-  min-height: 68px;
-  margin: 10px 18px 0;
+  top: 0;
+  width: var(--case-frame);
+  max-width: 1404px;
+  min-height: 70px;
+  margin: 0 auto;
   padding: 10px 14px 10px 20px;
   border: 0;
-  border-radius: 22px;
+  border-radius: 0 0 22px 22px;
   color: #fff9e9;
   background: rgba(31, 29, 24, 0.96);
-  box-shadow: 0 16px 38px rgba(23, 21, 15, 0.12);
+  box-shadow: 0 -12px 0 12px var(--bg), 0 16px 38px rgba(23, 21, 15, 0.12);
 }
 
 .antidoteShell .brand,
@@ -1315,17 +1317,39 @@ button:disabled {
 }
 
 .antidoteShell .viewTabs button {
-  min-height: 44px;
+  min-height: 40px;
+}
+
+.antidoteShell .viewTabs {
+  gap: 3px;
+  padding: 4px;
+  border: 1px solid rgba(255, 249, 233, 0.15);
+  border-radius: 14px;
+  background: rgba(8, 7, 5, 0.42);
+}
+
+.antidoteShell .viewTabs button {
+  align-items: center;
+  justify-content: center;
+  padding: 0 15px;
+  border-radius: 10px;
+  font-weight: 750;
+  text-align: center;
 }
 
 .antidoteShell .viewTabs button:hover,
 .antidoteShell .viewTabs button.active {
-  background: rgba(255, 249, 233, 0.07);
+  color: var(--fg);
+  background: #fff9e9;
 }
 
 .antidoteShell .viewTabs button::after,
 .antidoteShell .pulse {
   background: var(--accent);
+}
+
+.antidoteShell .viewTabs button::after {
+  display: none;
 }
 
 .antidoteShell .tabNumeral,
@@ -1334,13 +1358,17 @@ button:disabled {
   color: var(--accent);
 }
 
+.antidoteShell .tabNumeral {
+  font-weight: 750;
+}
+
 .antidoteShell .traceLanding {
   background: var(--bg);
 }
 
 .antidoteShell .traceSticky {
-  top: 88px;
-  height: calc(100svh - 88px);
+  top: 70px;
+  height: calc(100svh - 70px);
   border-color: var(--line2);
 }
 
@@ -1350,10 +1378,42 @@ button:disabled {
 }
 
 .antidoteShell .traceScene {
+  inset: 5% 1% 72px 40%;
   z-index: 0;
+  display: grid;
+  place-items: center;
+  overflow: visible;
   opacity: 1;
   pointer-events: none;
-  mask-image: linear-gradient(to right, transparent, black 12%, black 93%, transparent);
+  mask-image: none;
+}
+
+.antidoteShell .caseContainmentObject {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+.antidoteShell .caseArtifactAxis {
+  position: absolute;
+  right: 5%;
+  bottom: 2%;
+  left: 6%;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 18px;
+  color: #5a5245;
+  font-family: var(--mono);
+  font-size: 8px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-align: center;
+}
+
+.antidoteShell .caseArtifactAxis span {
+  padding-top: 9px;
+  border-top: 1px solid var(--line2);
 }
 
 .antidoteShell .traceCopy h1 {
@@ -1441,7 +1501,10 @@ button:disabled {
 }
 
 .antidoteShell .recoveryIntro {
+  width: var(--case-frame);
   padding-top: clamp(90px, 11vw, 160px);
+  padding-right: clamp(22px, 4vw, 60px);
+  padding-left: clamp(22px, 4vw, 60px);
 }
 
 .antidoteShell .recoveryIntro h2,
@@ -1467,6 +1530,7 @@ button:disabled {
 }
 
 .antidoteShell .statusRail {
+  width: var(--case-frame);
   margin-bottom: 24px;
   border: 1px solid var(--line2);
   border-radius: 18px;
@@ -1481,6 +1545,7 @@ button:disabled {
 }
 
 .antidoteShell .workspace {
+  width: var(--case-frame);
   border: 1px solid var(--line2);
   border-radius: 26px;
   overflow: hidden;
@@ -1523,6 +1588,13 @@ button:disabled {
 
 .antidoteShell .edgeLabel {
   fill: #c8c0af;
+  stroke: #1f1d18;
+  stroke-width: 7px;
+  stroke-linejoin: round;
+  paint-order: stroke fill;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 
 .antidoteShell .tone-ok .nodeShape {
@@ -1572,6 +1644,7 @@ button:disabled {
 }
 
 .antidoteShell .command {
+  width: var(--case-frame);
   max-width: 1440px;
   margin-top: 24px;
   border: 1px solid var(--line2);
@@ -1611,6 +1684,7 @@ button:disabled {
 }
 
 .antidoteShell .proof {
+  width: var(--case-frame);
   margin-top: 24px;
   border: 1px solid var(--line2);
   border-radius: 24px;
@@ -1619,7 +1693,32 @@ button:disabled {
 }
 
 .antidoteShell .view {
+  width: var(--case-frame);
+  max-width: 1404px;
+  margin-right: auto;
+  margin-left: auto;
   min-height: calc(100svh - 100px);
+}
+
+.antidoteShell .caseDataNotice {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin: 0;
+  padding: 14px 16px;
+  border-top: 1px solid var(--line2);
+  border-bottom: 1px solid var(--line2);
+  color: var(--fg2);
+  background: rgba(255, 90, 31, 0.055);
+  font-size: 14px;
+}
+
+.antidoteShell .caseDataNotice strong {
+  flex: 0 0 auto;
+  color: #8f291f;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
 }
 
 .antidoteShell .attackCard,
@@ -1638,6 +1737,49 @@ button:disabled {
   border-color: rgba(255, 249, 233, 0.16);
   color: #fff9e9;
   background: #1f1d18;
+}
+
+.antidoteShell .footerCausalLabels {
+  color: #bdb4a4;
+}
+
+.antidoteShell .footerCausalLabels span:nth-child(2),
+.antidoteShell .footerCausalLabels span:last-child {
+  color: #ff7a49;
+}
+
+.antidoteShell .footerThesis p {
+  color: #d8d0bf;
+}
+
+.antidoteShell .footerReturn,
+.antidoteShell .footerBrand {
+  color: #fff9e9;
+}
+
+.antidoteShell .footerIdentity p,
+.antidoteShell .footerNav button,
+.antidoteShell .footerNav .footerGuideLink {
+  color: #c8bfad;
+}
+
+.antidoteShell .footerRuntime dt,
+.antidoteShell .footerLegal {
+  color: #aaa192;
+}
+
+.antidoteShell .footerRuntime dd {
+  color: #eee6d5;
+}
+
+.antidoteShell .footerRuntime .footerPhase-infected {
+  color: #ff7a52;
+}
+
+.antidoteShell .footerNav button:hover,
+.antidoteShell .footerNav button[aria-current="page"],
+.antidoteShell .footerNav .footerGuideLink:hover {
+  color: #fff9e9;
 }
 
 .antidoteShell .appFooter .mark {
@@ -1665,17 +1807,60 @@ button:disabled {
 }
 
 @media (max-width: 780px) {
+  .antidoteShell {
+    --case-frame: calc(100% - 20px);
+  }
+
   .antidoteShell .topbar {
-    top: 6px;
-    width: calc(100% - 20px);
-    margin: 6px 10px 0;
+    top: 0;
+    width: var(--case-frame);
+    margin: 0 auto;
     padding: 10px 12px;
-    border-radius: 18px;
+    border-radius: 0 0 18px 18px;
   }
 
   .antidoteShell .traceSticky {
-    top: 124px;
-    height: calc(100svh - 124px);
+    top: 114px;
+    height: calc(100svh - 114px);
+  }
+
+  .antidoteShell .viewTabs {
+    width: 100%;
+  }
+
+  .antidoteShell .viewTabs button {
+    flex: 1 1 25%;
+    justify-content: center;
+    min-width: 0;
+    min-height: 44px;
+    padding: 0 7px;
+  }
+
+  .antidoteShell .view {
+    width: var(--case-frame);
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  .antidoteShell .caseDataNotice {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 7px;
+    padding: 13px 14px;
+  }
+
+  .antidoteShell .traceScene {
+    inset: 42% -28% 58px -18%;
+    place-items: end center;
+  }
+
+  .antidoteShell .caseContainmentObject {
+    width: 124%;
+    max-width: none;
+  }
+
+  .antidoteShell .caseArtifactAxis {
+    display: none;
   }
 
   .antidoteShell .traceCopy h1 {
@@ -1701,9 +1886,9 @@ button:disabled {
   .antidoteShell .statusRail,
   .antidoteShell .command,
   .antidoteShell .proof {
-    width: calc(100% - 24px);
-    margin-right: 12px;
-    margin-left: 12px;
+    width: var(--case-frame);
+    margin-right: auto;
+    margin-left: auto;
   }
 }
 
@@ -1797,8 +1982,10 @@ button:disabled {
 }
 
 .xirpFlow .howHero {
+  position: relative;
   display: block;
   min-height: max(800px, 100svh);
+  overflow: hidden;
   padding: 116px clamp(24px, 5.4vw, 86px) 54px;
   border: 0;
   background:
@@ -1807,11 +1994,13 @@ button:disabled {
 }
 
 .xirpFlow .howHeroCopy {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   min-height: calc(max(800px, 100svh) - 170px);
-  max-width: 980px;
+  max-width: min(61vw, 980px);
   padding: clamp(56px, 7vw, 110px) 0;
 }
 
@@ -1881,6 +2070,102 @@ button:disabled {
 
 .xirpFlow .howTextLink span {
   color: var(--assay-rose-text);
+}
+
+.xirpFlow .howHeroVisual {
+  position: absolute;
+  top: 50%;
+  right: clamp(-38px, 1vw, 20px);
+  z-index: 1;
+  display: grid;
+  width: clamp(420px, 43vw, 660px);
+  margin: 0;
+  place-items: center;
+  isolation: isolate;
+  pointer-events: none;
+  transform: translateY(-45%);
+}
+
+.xirpFlow .howHeroVisual::before,
+.xirpFlow .howHeroVisual::after {
+  position: absolute;
+  z-index: -1;
+  width: 82%;
+  aspect-ratio: 1;
+  border: 1px solid rgba(38, 34, 27, 0.14);
+  border-radius: 50%;
+  content: "";
+}
+
+.xirpFlow .howHeroVisual::before {
+  border-style: dashed;
+  animation: memoryVaultOrbit 28s linear infinite;
+}
+
+.xirpFlow .howHeroVisual::after {
+  width: 61%;
+  border-color: rgba(183, 53, 38, 0.24);
+  box-shadow: 0 0 0 28px rgba(183, 53, 38, 0.025);
+}
+
+.xirpFlow .howHeroOrbit {
+  position: absolute;
+  z-index: 2;
+  top: 28%;
+  right: 15%;
+  width: 13px;
+  height: 13px;
+  border: 3px solid var(--assay-paper);
+  border-radius: 50%;
+  background: var(--assay-rose);
+  box-shadow: 0 0 0 1px rgba(38, 34, 27, 0.22), 0 0 0 9px rgba(183, 53, 38, 0.08);
+  animation: memoryVaultPulse 2.8s ease-in-out infinite;
+}
+
+.xirpFlow .howHeroArtifact {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  animation: memoryVaultFloat 7s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+  transform-origin: 52% 48%;
+}
+
+.xirpFlow .howHeroArtifact img {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 28px 22px rgba(38, 34, 27, 0.13));
+}
+
+.xirpFlow .howHeroVisual figcaption {
+  position: absolute;
+  right: 10%;
+  bottom: 2%;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: rgba(38, 34, 27, 0.62);
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+}
+
+.xirpFlow .howHeroVisual figcaption span {
+  color: var(--assay-rose-text);
+}
+
+@keyframes memoryVaultFloat {
+  0%, 100% { transform: translate3d(0, -7px, 0) rotate(-1.2deg); }
+  50% { transform: translate3d(0, 9px, 0) rotate(1deg); }
+}
+
+@keyframes memoryVaultOrbit {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes memoryVaultPulse {
+  0%, 100% { transform: scale(0.82); opacity: 0.62; }
+  50% { transform: scale(1.08); opacity: 1; }
 }
 
 .assayScene {
@@ -2507,6 +2792,12 @@ button:disabled {
 
   .xirpFlow .howHeroCopy {
     min-height: 730px;
+    max-width: 68vw;
+  }
+
+  .xirpFlow .howHeroVisual {
+    right: -10vw;
+    width: clamp(380px, 54vw, 560px);
   }
 
   .assayScene {
@@ -2542,7 +2833,20 @@ button:disabled {
 
   .xirpFlow .howHeroCopy {
     min-height: 670px;
+    max-width: 100%;
     padding: 62px 20px;
+  }
+
+  .xirpFlow .howHeroVisual {
+    top: 42%;
+    right: -24vw;
+    width: 72vw;
+    opacity: 0.42;
+    transform: translateY(-50%);
+  }
+
+  .xirpFlow .howHeroVisual figcaption {
+    display: none;
   }
 
   .xirpFlow .howHero h1 {
@@ -2597,6 +2901,13 @@ button:disabled {
   .xirpFlow .howHeroCopy {
     min-height: 635px;
     padding: 58px 10px 48px;
+  }
+
+  .xirpFlow .howHeroVisual {
+    top: 39%;
+    right: -42vw;
+    width: 108vw;
+    opacity: 0.3;
   }
 
   .xirpFlow .howHero h1 {
@@ -2706,6 +3017,9 @@ button:disabled {
   .assayRoutes path,
   .assayMarquee > div,
   .assayConsoleMap svg path,
+  .xirpFlow .howHeroArtifact,
+  .xirpFlow .howHeroVisual::before,
+  .xirpFlow .howHeroOrbit,
   .xirpFlow .howLiveCaseLink span {
     animation: none;
   }
