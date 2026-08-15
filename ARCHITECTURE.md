@@ -49,28 +49,28 @@ write is validated with zod, idempotent, and recorded in `audit_events`.
 
 ## Sponsor technologies and why each is essential
 
-- **CockroachDB distributed SQL** — memory influence is durable state: every
+- **CockroachDB distributed SQL**: memory influence is durable state: every
   node, edge, retrieval, decision, action, session, verdict, attack memory,
   and repair record lives in one transactional system.
-- **CockroachDB distributed transactions** — `SERIALIZABLE` repair with row
+- **CockroachDB distributed transactions**: `SERIALIZABLE` repair with row
   locks and retry (40001/40003) makes revocation/quarantine/invalidation/
   cancellation atomic; no agent can observe partial repair.
-- **CockroachDB `VECTOR` + vector index** — semantic recall and known-poison
+- **CockroachDB `VECTOR` + vector index**: semantic recall and known-poison
   matching (`<=>`) co-located with causal state; no separate vector database.
-- **CockroachDB recursive CTEs** — blast-radius and lineage closures over
+- **CockroachDB recursive CTEs**: blast-radius and lineage closures over
   `memory_edges`, cycle-safe (UNION + depth bound).
-- **CockroachDB inverted + partial indexes** — structural attack recall by
+- **CockroachDB inverted + partial indexes**: structural attack recall by
   affected entity; enforcement-grade idempotency (content hash, plan hash).
-- **CockroachDB Cloud Managed MCP** — governed, read-only (SELECT-scoped)
+- **CockroachDB Cloud Managed MCP**: governed, read-only (SELECT-scoped)
   access for the Security/Forensics agent, fully traced in `mcp_operations`.
-- **Amazon Bedrock** — model-backed agent reasoning, structured decision
+- **Amazon Bedrock**: model-backed agent reasoning, structured decision
   output, memory extraction, embeddings, and security verdicts (zod-validated
   JSON, temperature 0.1, retries, deterministic fallback).
-- **OpenCode Go** — OpenAI-compatible chat completions for structured agent
+- **OpenCode Go**: OpenAI-compatible chat completions for structured agent
   reasoning, memory extraction, and security verdicts when Bedrock is absent.
-- **AWS Lambda** — asynchronous, idempotent repair and re-evaluation jobs
+- **AWS Lambda**: asynchronous, idempotent repair and re-evaluation jobs
   (`aws/repair-worker.ts`), scheduled + SQS-triggered.
-- **AWS S3 Object Lock** — immutable source/evidence archive; revocation
+- **AWS S3 Object Lock**: immutable source/evidence archive; revocation
   evidence cannot be altered or deleted.
 
 ## Design rules

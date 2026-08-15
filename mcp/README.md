@@ -1,4 +1,4 @@
-# CockroachDB Cloud Managed MCP — governed forensic access
+# CockroachDB Cloud Managed MCP: governed forensic access
 
 ANTIDOTE uses CockroachDB Cloud Managed MCP as the governed database-access
 boundary for the Security/Forensics agent. The agent's reads are **narrowly
@@ -15,7 +15,7 @@ scoped, read-only, and fully traced**.
 | `get_repair_status`   | repair jobs + re-evaluation queue state                      |
 
 Every invocation is recorded in `mcp_operations` with agent, capability,
-params, status, duration, and redacted evidence — surfaced in the in-product
+params, status, duration, and redacted evidence: surfaced in the in-product
 **Agent Trace** view (`GET/POST /api/trace`). Secrets are redacted server-side
 (`lib/mcp/redact.ts`) and never reach the browser or the log.
 
@@ -28,7 +28,7 @@ params, status, duration, and redacted evidence — surfaced in the in-product
    ```
 
    `antidote_forensics` gets `SELECT` on exactly the tables the forensics
-   agent needs — **no DML, no DDL, no mutation of memory state**. Revocations
+   agent needs: **no DML, no DDL, no mutation of memory state**. Revocations
    and repairs are deliberately excluded from its grants; they always route
    through the ANTIDOTE recovery API.
 
