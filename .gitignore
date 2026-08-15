@@ -6,3 +6,18 @@ node_modules
 *.log
 sdk/dist
 *.tsbuildinfo
+
+# hyperframes demo video project — generated/local artifacts
+videos/antidote-demo/.venv/
+videos/antidote-demo/node_modules/
+videos/antidote-demo/renders/
+videos/antidote-demo/snapshots/
+videos/antidote-demo/capture/
+videos/antidote-demo/capture-marketing/
+videos/antidote-demo/.thumbnails/
+
+# excluded from repo
+videos/
+DEVPOST.md
+TODO.md
+SCREENSHOTS.md
